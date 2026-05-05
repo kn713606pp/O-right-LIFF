@@ -156,12 +156,12 @@
 </div>
 
 <script>
-  var GAS_URL  = "YOUR_GAS_WEBAPP_URL_HERE";  // 與 Config.gs 的 GAS_WEBAPP_URL 相同
+  var GAS_URL  = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
   var taskId, userId, taskData;
 
   async function init() {
     try {
-      await liff.init({ liffId: "YOUR_LIFF_ID_HERE" });  // 與 Config.gs 的 LIFF_ID 相同
+      await liff.init({ liffId: "2009974832-1tuzOcJQ" });
 
       if (!liff.isLoggedIn()) {
         liff.login();
