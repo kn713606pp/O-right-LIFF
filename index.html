@@ -227,11 +227,13 @@
     btn.textContent = "送出中…";
 
     try {
-      var res = await fetch(GAS_URL, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ action: "submitResponse", taskId, userId, data, note }),
-      });
+      var url = GAS_URL
+        + "?action=submitResponse"
+        + "&taskId=" + encodeURIComponent(taskId)
+        + "&userId=" + encodeURIComponent(userId)
+        + "&data="   + encodeURIComponent(data)
+        + "&note="   + encodeURIComponent(note);
+      var res    = await fetch(url);
       var result = await res.json();
 
       if (result.status === "ok") {
