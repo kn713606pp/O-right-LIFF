@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>新增任務 — 歐萊德小管家</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "Noto Sans TC", sans-serif;
+      background: #F0F4F8;
+      min-height: 100vh;
+      padding: 20px 16px 40px;
+    }
+    .header {
+      background: #1E3A5F; color: white;
+      padding: 16px; border-radius: 12px; margin-bottom: 16px;
+    }
+    .header .label { font-size: 12px; opacity: 0.7; margin-bottom: 4px; }
+    .header .title { font-size: 18px; font-weight: bold; }
+    .card {
+      background: white; border-radius: 12px;
+      padding: 16px; margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    label {
+      display: block; font-size: 13px; font-weight: bold;
+      color: #1E3A5F; margin-bottom: 6px;
+    }
+    .required { color: #C62828; }
+    input, textarea, select {
+      width: 100%; padding: 10px 12px;
+      border: 1.5px solid #DDD; border-radius: 8px;
+      font-size: 15px; font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none; border-color: #1E3A5F;
+    }
+    textarea { resize: vertical; }
+    .error-msg { color: #C62828; font-size: 13px; margin-top: 4px; display: none; }
+    .btn-submit {
+      width: 100%; padding: 14px; background: #1E3A5F;
+      color: white; border: none; border-radius: 10px;
+      font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px;
+    }
+    .btn-submit:disabled { background: #AAA; }
+    #loading { text-align: center; padding: 60px 20px; color: #999; }
+    #success { display: none; text-align: center; padding: 40px 20px; }
+    #success .icon { font-size: 48px; margin-bottom: 12px; }
+    #success .msg  { font-size: 16px; font-weight: bold; color: #333; }
+    #success .sub  { font-size: 14px; color: #999; margin-top: 8px; }
+    #no-permission { display: none; text-align: center; padding: 60px 20px; color: #C62828; }
+  </style>
+</head>
+<body>
+
+<div id="loading">載入中…</div>
+<div id="no-permission"><div style="font-size:40px">⛔</div><div style="margin-top:12px;font-weight:bold">您沒有新增任務的權限</div></div>
+
+<div id="form-content" style="display:none">
+  <div class="header">
+    <div class="label">歐萊德小管家 — 管理功能</div>
+    <div class="title">➕ 新增任務</div>
+  </div>
+
+  <div class="card">
+    <label>專案名稱 <span class="required">*</span></label>
+    <input type="text" id="project-name" placeholder="例：Q2 物料盤點">
+    <div class="error-msg" id="err-name">請填寫專案名稱</div>
+  </div>
+
+  <div class="card">
+    <label>任務說明 <span class="required">*</span></label>
+    <textarea id="description" rows="3" placeholder="請描述任務內容與目的"></textarea>
+    <div class="error-msg" id="err-desc">請填寫任務說明</div>
+  </div>
+
+  <div class="card">
+    <label>負責部門 <span class="required">*</span></label>
+    <select id="dept">
+      <option value="">— 請選擇 —</option>
+      <option>研發部</option>
+      <option>業務部</option>
+      <option>行銷部</option>
+      <option>倉儲部</option>
+      <option>生產部</option>
+      <option>採購部</option>
+      <option>財務部</option>
+      <option>人資部</option>
+      <option>資訊部</option>
+      <option>行政部</option>
+    </select>
+    <div class="error-msg" id="err-dept">請選擇負責部門</div>
+  </div>
+
+  <div class="card">
+    <label>負責主管姓名 <span class="required">*</span></label>
+    <input type="text" id="manager-name" placeholder="例：王大明">
+    <div class="error-msg" id="err-mgr-name">請填寫負責主管姓名</div>
+  </div>
+
+  <div class="card">
+    <label>負責主管 LINE ID <span class="required">*</span></label>
+    <input type="text" id="manager-line-id" placeholder="例：U1a2b3c4d…（U 開頭 33 碼）">
+    <div style="font-size:12px;color:#999;margin-top:4px">主管傳「我的ID」給機器人可取得</div>
+    <div class="error-msg" id="err-mgr-id">請填寫負責主管 LINE ID</div>
+  </div>
+
+  <div class="card">
+    <label>截止日期 <span class="required">*</span></label>
+    <input type="date" id="due-date">
+    <div class="error-msg" id="err-due">請選擇截止日期</div>
+  </div>
+
+  <div class="card">
+    <label>需要提供的資料 <span class="required">*</span></label>
+    <input type="text" id="required-data" placeholder="例：庫存總數量（整數）">
+    <div class="error-msg" id="err-req">請說明需要的資料</div>
+  </div>
+
+  <button class="btn-submit" id="btn-submit" onclick="submitTask()">建立任務並通知主管</button>
+</div>
+
+<div id="success">
+  <div class="icon">✅</div>
+  <div class="msg">任務已建立！</div>
+  <div class="sub">系統已自動通知負責主管。</div>
+</div>
+
+<script>
+  var GAS_URL = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
+  var userId;
+
+  async function init() {
+    try {
+      await liff.init({ liffId: "2009974832-1tuzOcJQ" });
+      if (!liff.isLoggedIn()) { liff.login(); return; }
+
+      userId = liff.getContext().userId;
+
+      // 確認是否為管理員
+      var res  = await fetch(GAS_URL + "?action=checkRole&userId=" + encodeURIComponent(userId));
+      var info = await res.json();
+
+      if (info.role !== "admin") {
+        document.getElementById("loading").style.display      = "none";
+        document.getElementById("no-permission").style.display = "block";
+        return;
+      }
+
+      // 設定截止日期預設值（7 天後）
+      var d = new Date(); d.setDate(d.getDate() + 7);
+      document.getElementById("due-date").value = d.toISOString().split("T")[0];
+
+      document.getElementById("loading").style.display      = "none";
+      document.getElementById("form-content").style.display = "block";
+
+    } catch (err) {
+      document.getElementById("loading").innerHTML =
+        "<div style='color:#C62828;padding:20px;text-align:center'>載入失敗：" + err.message + "</div>";
+    }
+  }
+
+  async function submitTask() {
+    var name    = document.getElementById("project-name").value.trim();
+    var desc    = document.getElementById("description").value.trim();
+    var dept    = document.getElementById("dept").value;
+    var mgrName = document.getElementById("manager-name").value.trim();
+    var mgrId   = document.getElementById("manager-line-id").value.trim();
+    var due     = document.getElementById("due-date").value;
+    var reqData = document.getElementById("required-data").value.trim();
+
+    var valid = true;
+    function check(val, errId) {
+      var el = document.getElementById(errId);
+      el.style.display = val ? "none" : "block";
+      if (!val) valid = false;
+    }
+    check(name,    "err-name");
+    check(desc,    "err-desc");
+    check(dept,    "err-dept");
+    check(mgrName, "err-mgr-name");
+    check(mgrId,   "err-mgr-id");
+    check(due,     "err-due");
+    check(reqData, "err-req");
+    if (!valid) return;
+
+    var btn = document.getElementById("btn-submit");
+    btn.disabled = true; btn.textContent = "建立中…";
+
+    try {
+      var taskId = "T-" + Date.now();
+      var url = GAS_URL
+        + "?action=createTask"
+        + "&taskId="       + encodeURIComponent(taskId)
+        + "&projectName="  + encodeURIComponent(name)
+        + "&description="  + encodeURIComponent(desc)
+        + "&dept="         + encodeURIComponent(dept)
+        + "&managerName="  + encodeURIComponent(mgrName)
+        + "&managerLineId="+ encodeURIComponent(mgrId)
+        + "&requesterLineId=" + encodeURIComponent(userId)
+        + "&dueDate="      + encodeURIComponent(due)
+        + "&requiredData=" + encodeURIComponent(reqData);
+
+      var res    = await fetch(url);
+      var result = await res.json();
+
+      if (result.status === "ok") {
+        document.getElementById("form-content").style.display = "none";
+        document.getElementById("success").style.display      = "block";
+        setTimeout(function() { liff.closeWindow(); }, 2500);
+      } else {
+        throw new Error(result.error || "建立失敗");
+      }
+    } catch (err) {
+      btn.disabled = false; btn.textContent = "建立任務並通知主管";
+      alert("建立失敗：" + err.message);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
