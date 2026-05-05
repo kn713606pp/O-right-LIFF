@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>任務回報 — 歐萊德小管家</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "Noto Sans TC", sans-serif;
+      background: #F0F4F8;
+      min-height: 100vh;
+      padding: 20px 16px 40px;
+    }
+
+    .header {
+      background: #1E3A5F;
+      color: white;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .header .label { font-size: 12px; opacity: 0.7; margin-bottom: 4px; }
+    .header .title { font-size: 18px; font-weight: bold; line-height: 1.4; }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #F0F0F0;
+      font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #999; flex-shrink: 0; margin-right: 12px; }
+    .info-value { color: #333; text-align: right; }
+    .due-urgent  { color: #C62828; font-weight: bold; }
+    .due-warning { color: #E65100; font-weight: bold; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: bold;
+      color: #1E3A5F;
+      margin-bottom: 6px;
+    }
+    .required { color: #C62828; }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #DDD;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+      resize: vertical;
+    }
+    textarea:focus, input[type="text"]:focus {
+      outline: none;
+      border-color: #1E3A5F;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: #1E3A5F;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+    .btn-submit:active { background: #152B47; }
+    .btn-submit:disabled { background: #AAA; cursor: not-allowed; }
+
+    .error-msg {
+      color: #C62828;
+      font-size: 13px;
+      margin-top: 6px;
+      display: none;
+    }
+
+    #loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    #success {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    #success .icon { font-size: 48px; margin-bottom: 12px; }
+    #success .msg  { font-size: 16px; color: #333; font-weight: bold; }
+    #success .sub  { font-size: 14px; color: #999; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+<div id="loading">載入中…</div>
+
+<div id="form-content" style="display:none">
+  <div class="header">
+    <div class="label">歐萊德小管家 — 任務回報</div>
+    <div class="title" id="task-title">載入中…</div>
+  </div>
+
+  <div class="card">
+    <div class="info-row">
+      <span class="info-label">負責部門</span>
+      <span class="info-value" id="task-dept">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">截止日期</span>
+      <span class="info-value" id="task-due">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">任務說明</span>
+      <span class="info-value" id="task-desc">—</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>需要提供的資料 <span class="required">*</span></label>
+    <div style="font-size:13px;color:#666;margin-bottom:10px;" id="task-required"></div>
+    <textarea id="response-data" rows="4" placeholder="請在此填寫回報內容…"></textarea>
+    <div class="error-msg" id="err-data">請填寫回報資料</div>
+  </div>
+
+  <div class="card">
+    <label>備註（選填）</label>
+    <input type="text" id="note" placeholder="如有補充說明請填寫">
+  </div>
+
+  <button class="btn-submit" id="btn-submit" onclick="submitForm()">確認送出</button>
+</div>
+
+<div id="success">
+  <div class="icon">✅</div>
+  <div class="msg">回報已送出！</div>
+  <div class="sub">感謝您的配合，系統已通知相關人員。</div>
+</div>
+
+<script>
+  var GAS_URL  = "YOUR_GAS_WEBAPP_URL_HERE";  // 與 Config.gs 的 GAS_WEBAPP_URL 相同
+  var taskId, userId, taskData;
+
+  async function init() {
+    try {
+      await liff.init({ liffId: "YOUR_LIFF_ID_HERE" });  // 與 Config.gs 的 LIFF_ID 相同
+
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+
+      userId = liff.getContext().userId;
+      taskId = new URLSearchParams(location.search).get("taskId");
+
+      if (!taskId) {
+        showError("缺少任務 ID，請重新點擊 LINE 訊息中的按鈕。");
+        return;
+      }
+
+      var res  = await fetch(GAS_URL + "?action=getTask&taskId=" + encodeURIComponent(taskId));
+      taskData = await res.json();
+
+      if (taskData.error) {
+        showError(taskData.error);
+        return;
+      }
+
+      if (taskData.status === "已完成") {
+        showAlreadyDone();
+        return;
+      }
+
+      renderTask(taskData);
+      document.getElementById("loading").style.display       = "none";
+      document.getElementById("form-content").style.display  = "block";
+
+    } catch (err) {
+      showError("載入失敗：" + err.message);
+    }
+  }
+
+  function renderTask(t) {
+    document.getElementById("task-title").textContent    = t.projectName;
+    document.getElementById("task-dept").textContent     = t.dept        || "—";
+    document.getElementById("task-desc").textContent     = t.description || "—";
+    document.getElementById("task-required").textContent = t.requiredData || "—";
+
+    var dueEl    = document.getElementById("task-due");
+    var daysLeft = _daysLeft(t.dueDate);
+    dueEl.textContent = t.dueDate + "（剩 " + daysLeft + " 天）";
+    if      (daysLeft <= 0) dueEl.className = "info-value due-urgent";
+    else if (daysLeft <= 3) dueEl.className = "info-value due-warning";
+  }
+
+  async function submitForm() {
+    var data = document.getElementById("response-data").value.trim();
+    var note = document.getElementById("note").value.trim();
+    var errEl = document.getElementById("err-data");
+
+    if (!data) {
+      errEl.style.display = "block";
+      return;
+    }
+    errEl.style.display = "none";
+
+    var btn = document.getElementById("btn-submit");
+    btn.disabled    = true;
+    btn.textContent = "送出中…";
+
+    try {
+      var res = await fetch(GAS_URL, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ action: "submitResponse", taskId, userId, data, note }),
+      });
+      var result = await res.json();
+
+      if (result.status === "ok") {
+        document.getElementById("form-content").style.display = "none";
+        document.getElementById("success").style.display      = "block";
+        setTimeout(function() { liff.closeWindow(); }, 2500);
+      } else {
+        throw new Error("伺服器回傳錯誤");
+      }
+    } catch (err) {
+      btn.disabled    = false;
+      btn.textContent = "確認送出";
+      alert("送出失敗，請稍後再試：" + err.message);
+    }
+  }
+
+  function showError(msg) {
+    document.getElementById("loading").innerHTML =
+      "<div style='color:#C62828;font-size:15px;padding:20px;text-align:center;'>" + msg + "</div>";
+  }
+
+  function showAlreadyDone() {
+    document.getElementById("loading").innerHTML =
+      "<div style='text-align:center;padding:40px 20px'><div style='font-size:40px'>✅</div><div style='margin-top:12px;color:#333;font-weight:bold'>此任務已完成回報</div></div>";
+  }
+
+  function _daysLeft(dateStr) {
+    var due   = new Date(dateStr);
+    var today = new Date(); today.setHours(0,0,0,0);
+    return Math.ceil((due - today) / 86400000);
+  }
+
+  init();
+</script>
+</body>
+</html>
