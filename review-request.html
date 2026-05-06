@@ -191,11 +191,18 @@ async function init() {
     document.getElementById("loading").style.display = "none";
     document.getElementById("app").style.display     = "block";
 
-    // 如果不是當前審核人，隱藏回覆面板
+    // 判斷顯示哪個面板
     const currentApproverId = reqData.approverIds[reqData.currentLevel];
+    const myChainLevel = reqData.approverIds.indexOf(myId);
+
     if (reqData.status !== "待審核" && reqData.status !== "需補充") {
       showDonePanel();
-    } else if (currentApproverId !== myId) {
+    } else if (currentApproverId === myId) {
+      // 正常審核面板（預設顯示）
+    } else if (myChainLevel > reqData.currentLevel) {
+      // 上層主管：可跳關代審
+      showSkipPanel(myChainLevel);
+    } else {
       document.getElementById("replyPanel").innerHTML =
         "<div class='already-done'><p style='font-size:28px;'>👀</p>"
         + "<p style='margin-top:10px;font-weight:700;'>目前輪到其他人審核</p>"
@@ -254,6 +261,67 @@ function showDonePanel() {
     "<div class='already-done'><p style='font-size:32px;'>" + (reqData.status === "已批准" ? "✅" : reqData.status === "已退回" ? "❌" : "⚠️") + "</p>"
     + "<p style='margin-top:12px;font-weight:700;'>此請示已審核完畢</p>"
     + "<p style='margin-top:6px;'><span class='status-badge " + (statusClass[reqData.status] || "") + "'>" + reqData.status + "</span></p></div>";
+}
+
+function showSkipPanel(myLevel) {
+  const lvl         = reqData.currentLevel;
+  const blockedName = reqData.approverNames[lvl] || ("第" + (lvl + 1) + "關審核人");
+  const myName2     = reqData.approverNames[myLevel] || "您";
+  const skipped     = myLevel - lvl;
+
+  document.getElementById("replyPanel").innerHTML =
+    "<div style='background:#fff3e0;border-radius:8px;padding:12px;margin-bottom:12px;'>"
+    + "<p style='color:#E65100;font-weight:700;font-size:14px;'>⚡ 跳關簽核</p>"
+    + "<p style='font-size:13px;margin-top:6px;color:#555;'>"
+    + "您是第 " + (myLevel + 1) + " 關審核人（" + esc(myName2) + "）<br>"
+    + "目前第 " + (lvl + 1) + " 關（" + esc(blockedName) + "）尚未審核。<br>"
+    + "跳關後，中間 " + skipped + " 關將標記為「已跳過」。"
+    + "</p></div>"
+    + "<label>跳關審核意見（建議填寫說明原因）</label>"
+    + "<textarea id='skipComment' placeholder='說明為何跳關代審，例如：情況緊急，授權逕行批准' style='margin-top:6px;width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;min-height:70px;font-size:14px;'></textarea>"
+    + "<div class='btn-row' style='margin-top:12px;'>"
+    + "<button class='btn btn-approve' id='skipApprove' onclick='doSkip(\"approve\")'>✅ 跳關批准</button>"
+    + "<button class='btn btn-reject'  id='skipReject'  onclick='doSkip(\"reject\")'>❌ 跳關退回</button>"
+    + "</div>";
+}
+
+async function doSkip(decision) {
+  const comment = (document.getElementById("skipComment") || {}).value || "";
+  ["skipApprove", "skipReject"].forEach(function(id) {
+    var b = document.getElementById(id);
+    if (b) b.disabled = true;
+  });
+
+  const p = new URLSearchParams({
+    action:    "skipLevel",
+    userId:    myId,
+    requestId: reqData.requestId,
+    decision:  decision,
+    comment:   comment.trim(),
+  });
+  try {
+    const res  = await fetch(GAS + "?" + p.toString());
+    const data = await res.json();
+    if (data.status === "ok") {
+      showSuccess(
+        decision === "approve" ? "✅" : "❌",
+        decision === "approve" ? "已跳關批准" : "已跳關退回",
+        "已記錄跳關簽核，相關人員已收到通知。"
+      );
+    } else {
+      alert("失敗：" + (data.error || "未知錯誤"));
+      ["skipApprove", "skipReject"].forEach(function(id) {
+        var b = document.getElementById(id);
+        if (b) b.disabled = false;
+      });
+    }
+  } catch (e) {
+    alert("網路錯誤，請重試");
+    ["skipApprove", "skipReject"].forEach(function(id) {
+      var b = document.getElementById(id);
+      if (b) b.disabled = false;
+    });
+  }
 }
 
 function toggleEscalate() {
