@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>審核請示</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           background: #f5f5f5; color: #333; }
+    .header { background: #4A235A; color: #fff; padding: 16px 20px; }
+    .header h1 { font-size: 18px; font-weight: 700; }
+    .body { padding: 16px; max-width: 600px; margin: 0 auto; }
+    .card { background: #fff; border-radius: 12px; padding: 16px;
+            margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .meta { font-size: 12px; color: #888; margin-bottom: 4px; }
+    .subject { font-size: 18px; font-weight: 700; margin: 8px 0; }
+    .content-box {
+      background: #f9f9f9; border-radius: 8px; padding: 12px;
+      font-size: 14px; line-height: 1.6; white-space: pre-wrap;
+      margin-top: 8px; color: #444;
+    }
+    .status-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; margin-top: 6px;
+    }
+    .status-pending  { background: #FFF3E0; color: #E65100; }
+    .status-approved { background: #E8F5E9; color: #2E7D32; }
+    .status-rejected { background: #FFEBEE; color: #C62828; }
+    .status-info     { background: #FFF8E1; color: #F57F17; }
+    label { font-size: 13px; font-weight: 600; color: #555; display: block; margin-bottom: 6px; }
+    textarea {
+      width: 100%; padding: 10px 12px; border: 1.5px solid #ddd;
+      border-radius: 8px; font-size: 14px; resize: vertical; min-height: 90px;
+    }
+    textarea:focus { outline: none; border-color: #4A235A; }
+    .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+    .btn {
+      flex: 1; padding: 12px; border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .btn-approve { background: #2E7D32; color: #fff; }
+    .btn-reject  { background: #C62828; color: #fff; }
+    .btn-info    { background: #E65100; color: #fff; }
+    .btn:disabled { background: #aaa; cursor: not-allowed; }
+    .success { text-align: center; padding: 50px 20px; }
+    .success .icon { font-size: 64px; margin-bottom: 16px; }
+    .success h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    #loading { text-align: center; padding: 60px 20px; color: #888; }
+    .already-done { text-align: center; padding: 40px 20px; color: #666; }
+  </style>
+</head>
+<body>
+
+<div id="loading">載入中…</div>
+<div id="app" style="display:none">
+  <div class="header">
+    <h1>📋 審核請示</h1>
+  </div>
+  <div class="body">
+    <div class="card" id="reqDetail"></div>
+
+    <div class="card" id="replyForm">
+      <label>回覆說明（選填）</label>
+      <textarea id="replyText" placeholder="填寫批准條件、退回原因、或需要補充的資訊…"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-approve" id="btnApprove" onclick="doReply('approve')">✅ 批准</button>
+        <button class="btn btn-reject"  id="btnReject"  onclick="doReply('reject')">❌ 退回</button>
+        <button class="btn btn-info"    id="btnInfo"    onclick="doReply('info')">⚠️ 需補充</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="successScreen" style="display:none" class="body">
+  <div class="success">
+    <div class="icon" id="successIcon"></div>
+    <h2 id="successTitle"></h2>
+    <p id="successDesc" style="color:#666; font-size:14px;"></p>
+    <p style="margin-top:20px; font-size:13px; color:#888;">已通知請示人，可關閉此頁面。</p>
+  </div>
+</div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
+let myUserId = "";
+let reqId    = "";
+
+function getParam(key) {
+  return new URLSearchParams(window.location.search).get(key) || "";
+}
+
+async function init() {
+  reqId = getParam("reqId");
+  if (!reqId) {
+    document.getElementById("loading").innerHTML =
+      "<p style='padding:40px;text-align:center;color:#C62828;'>❌ 缺少請示 ID</p>";
+    return;
+  }
+
+  await liff.init({ liffId: "2009974832-1tuzOcJQ" });
+  if (!liff.isLoggedIn()) { liff.login(); return; }
+
+  const profile = await liff.getProfile();
+  myUserId = profile.userId;
+
+  // Load request detail via getRequests (pending for recipient)
+  try {
+    const url = GAS_URL + "?action=getRequests&userId=" + myUserId + "&type=all";
+    const res  = await fetch(url);
+    const data = await res.json();
+    const all  = (data.requests || []);
+    const req  = all.filter(function(r) { return r.requestId === reqId; })[0];
+
+    if (!req) {
+      document.getElementById("loading").innerHTML =
+        "<p style='padding:40px;text-align:center;color:#C62828;'>❌ 找不到此請示，或您沒有查看權限。</p>";
+      return;
+    }
+
+    renderDetail(req);
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("app").style.display     = "block";
+
+    if (req.status !== "待審核") {
+      document.getElementById("replyForm").innerHTML =
+        "<div class='already-done'><p style='font-size:32px;'>✅</p>"
+        + "<p style='margin-top:12px;font-weight:700;'>此請示已審核完畢</p>"
+        + "<p style='margin-top:6px;color:#666;'>狀態：" + req.status + "</p>"
+        + (req.reply ? "<p style='margin-top:6px;color:#666;'>回覆：" + req.reply + "</p>" : "")
+        + "</div>";
+    }
+  } catch (err) {
+    document.getElementById("loading").innerHTML =
+      "<p style='padding:40px;text-align:center;color:#C62828;'>⛔ 網路錯誤，請稍後再試</p>";
+  }
+}
+
+function renderDetail(req) {
+  const statusClass = {
+    "待審核": "status-pending",
+    "已批准": "status-approved",
+    "已退回": "status-rejected",
+    "需補充": "status-info",
+  }[req.status] || "status-pending";
+
+  document.getElementById("reqDetail").innerHTML =
+    "<div class='meta'>請示人：" + (req.requesterName || "—") + "　時間：" + (req.createdTime || "") + "</div>"
+    + "<div class='subject'>" + req.subject + "</div>"
+    + "<span class='status-badge " + statusClass + "'>" + req.status + "</span>"
+    + (req.content
+        ? "<div class='content-box'>" + escHtml(req.content) + "</div>"
+        : "<div style='margin-top:8px;font-size:13px;color:#aaa;'>（無詳細說明）</div>");
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+async function doReply(decision) {
+  const reply  = document.getElementById("replyText").value.trim();
+  const decMap = { approve: "批准", reject: "退回", info: "需補充" };
+  const btnIds = ["btnApprove", "btnReject", "btnInfo"];
+  btnIds.forEach(function(id) {
+    document.getElementById(id).disabled = true;
+  });
+
+  const params = new URLSearchParams({
+    action:    "replyRequest",
+    userId:    myUserId,
+    requestId: reqId,
+    decision:  decision,
+    reply:     reply,
+  });
+
+  try {
+    const res  = await fetch(GAS_URL + "?" + params.toString());
+    const data = await res.json();
+    if (data.status === "ok") {
+      document.getElementById("app").style.display           = "none";
+      document.getElementById("successScreen").style.display = "block";
+      const iconMap  = { approve: "✅", reject: "❌", info: "⚠️" };
+      const titleMap = { approve: "已批准請示", reject: "已退回請示", info: "已要求補充" };
+      document.getElementById("successIcon").textContent  = iconMap[decision]  || "✅";
+      document.getElementById("successTitle").textContent = titleMap[decision] || "審核完成";
+      document.getElementById("successDesc").textContent  = reply ? "回覆說明：" + reply : "請示人已收到通知。";
+    } else {
+      alert("操作失敗：" + (data.error || "未知錯誤"));
+      btnIds.forEach(function(id) {
+        document.getElementById(id).disabled = false;
+      });
+    }
+  } catch (err) {
+    alert("網路錯誤，請稍後再試");
+    btnIds.forEach(function(id) {
+      document.getElementById(id).disabled = false;
+    });
+  }
+}
+
+init();
+</script>
+</body>
+</html>

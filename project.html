@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>新建跨部門專案 — 歐萊德小管家</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "Noto Sans TC", sans-serif;
+      background: #F0F4F8; min-height: 100vh; padding: 20px 16px 60px;
+    }
+    .header {
+      background: linear-gradient(135deg, #1E3A5F 0%, #2d5a8e 100%);
+      color: white; padding: 18px; border-radius: 12px; margin-bottom: 16px;
+    }
+    .header .label    { font-size: 12px; opacity: 0.7; margin-bottom: 4px; }
+    .header .title    { font-size: 19px; font-weight: bold; }
+    .header .subtitle { font-size: 13px; opacity: 0.8; margin-top: 5px; }
+
+    .card {
+      background: white; border-radius: 12px;
+      padding: 16px; margin-bottom: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .field-label {
+      display: block; font-size: 13px; font-weight: bold;
+      color: #1E3A5F; margin-bottom: 6px;
+    }
+    .required { color: #C62828; }
+    input[type="text"], input[type="date"], textarea, select {
+      width: 100%; padding: 10px 12px;
+      border: 1.5px solid #DDD; border-radius: 8px;
+      font-size: 14px; font-family: inherit; background: white;
+    }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: #1E3A5F; }
+    textarea { resize: vertical; }
+    .error-msg { color: #C62828; font-size: 12px; margin-top: 4px; display: none; }
+
+    /* 任務行 */
+    .section-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .section-head .field-label { margin: 0; }
+    .dept-count {
+      font-size: 12px; color: #1565C0; font-weight: bold;
+      background: #E3F2FD; padding: 3px 10px; border-radius: 10px;
+    }
+
+    .task-block {
+      border: 1.5px solid #DDEAF8; border-radius: 10px;
+      padding: 14px; margin-bottom: 10px; background: #F8FBFF;
+    }
+    .task-block-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .task-num {
+      font-size: 12px; font-weight: bold; color: white;
+      background: #1E3A5F; padding: 3px 10px; border-radius: 10px;
+    }
+    .btn-del {
+      background: none; border: none; color: #C62828;
+      font-size: 14px; cursor: pointer; padding: 3px 8px;
+      border: 1px solid #FFCDD2; border-radius: 6px;
+    }
+
+    .two-col { display: flex; gap: 8px; margin-bottom: 10px; }
+    .two-col > div { flex: 1; min-width: 0; }
+    .field-group { margin-bottom: 10px; }
+    .field-group:last-child { margin-bottom: 0; }
+    .inner-label {
+      display: block; font-size: 12px; font-weight: bold;
+      color: #555; margin-bottom: 5px;
+    }
+    .inline-hint { font-size: 11px; color: #999; margin-top: 3px; }
+
+    .btn-add {
+      width: 100%; padding: 11px; background: white;
+      color: #1E3A5F; border: 1.5px dashed #1E3A5F;
+      border-radius: 8px; font-size: 14px; cursor: pointer; margin-bottom: 4px;
+    }
+    .btn-add:hover { background: #F0F4F8; }
+
+    .btn-submit {
+      width: 100%; padding: 15px; background: #1E3A5F;
+      color: white; border: none; border-radius: 10px;
+      font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
+    }
+    .btn-submit:disabled { background: #AAA; }
+
+    #loading  { text-align: center; padding: 60px 20px; color: #999; }
+    #no-perm  { display: none; text-align: center; padding: 60px 20px; color: #C62828; }
+    #form-wrap{ display: none; }
+    #success  { display: none; text-align: center; padding: 48px 20px; }
+    #success .icon { font-size: 56px; margin-bottom: 16px; }
+    #success .msg  { font-size: 18px; font-weight: bold; color: #1E3A5F; }
+    #success .sub  { font-size: 13px; color: #666; margin-top: 10px; line-height: 1.8; }
+
+    .summary-box {
+      background: #E8F5E9; border-radius: 8px; padding: 12px;
+      margin-bottom: 14px; font-size: 13px; color: #2E7D32; display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">載入中…</div>
+
+<div id="no-perm">
+  <div style="font-size:44px">⛔</div>
+  <div style="margin-top:14px;font-size:16px;font-weight:bold">您沒有建立專案的權限</div>
+</div>
+
+<div id="form-wrap">
+  <div class="header">
+    <div class="label">歐萊德小管家 — 管理功能</div>
+    <div class="title">📁 新建跨部門專案</div>
+    <div class="subtitle">填一張表，自動通知所有部門負責人</div>
+  </div>
+
+  <!-- 專案基本資訊 -->
+  <div class="card">
+    <label class="field-label">專案名稱 <span class="required">*</span></label>
+    <input type="text" id="pname" placeholder="例：2026 Q2 業績彙整">
+    <div class="error-msg" id="err-pname">請填寫專案名稱</div>
+  </div>
+
+  <div class="card">
+    <label class="field-label">
+      背景說明 / 交辦指示 <span class="required">*</span>
+      <span style="font-size:11px;font-weight:normal;color:#999">（各部門都會收到此說明）</span>
+    </label>
+    <textarea id="pdesc" rows="4"
+      placeholder="例：董事長指示，請各部門於本月底前提供 Q2 相關數據，以供年中業績檢討會議使用。"></textarea>
+    <div class="error-msg" id="err-pdesc">請填寫背景說明</div>
+  </div>
+
+  <!-- 各部門任務 -->
+  <div class="card">
+    <div class="section-head">
+      <label class="field-label">
+        各部門任務 <span class="required">*</span>
+      </label>
+      <span class="dept-count" id="dept-count">1 個部門</span>
+    </div>
+
+    <div id="task-list"></div>
+
+    <button class="btn-add" type="button" onclick="addRow()">＋ 新增部門任務</button>
+    <div class="error-msg" id="err-tasks">請確認每個部門任務均已填寫完整（部門、負責人、任務說明、截止日期）</div>
+  </div>
+
+  <div class="summary-box" id="summary-box"></div>
+
+  <button class="btn-submit" id="btn-submit" onclick="submit()">
+    建立專案並通知各部門
+  </button>
+</div>
+
+<div id="success">
+  <div class="icon">📁</div>
+  <div class="msg">跨部門專案已建立！</div>
+  <div class="sub" id="succ-sub"></div>
+</div>
+
+<script>
+  var GAS_URL    = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
+  var userId;
+  var allMembers  = [];
+  var deptMap     = {};     // dept -> [{lineId, name, role}]
+  var rowSeq      = 0;
+  var activeRows  = [];
+
+  // ── 初始化 ──────────────────────────────────────────────────
+
+  async function init() {
+    try {
+      await liff.init({ liffId: "2009974832-1tuzOcJQ" });
+      if (!liff.isLoggedIn()) { liff.login(); return; }
+      userId = liff.getContext().userId;
+
+      var roleRes  = await fetch(GAS_URL + "?action=checkRole&userId=" + enc(userId));
+      var roleData = await roleRes.json();
+      if (roleData.role !== "admin") { show("no-perm"); return; }
+
+      var mRes  = await fetch(GAS_URL + "?action=getMembers&userId=" + enc(userId));
+      var mData = await mRes.json();
+      allMembers = mData.members || [];
+
+      allMembers.forEach(function(m) {
+        var d = m.dept || "未分類";
+        if (!deptMap[d]) deptMap[d] = [];
+        deptMap[d].push(m);
+      });
+
+      addRow();
+      show("form-wrap");
+    } catch (err) {
+      document.getElementById("loading").innerHTML =
+        "<div style='color:#C62828;padding:20px;text-align:center'>載入失敗：" + esc(err.message) + "</div>";
+    }
+  }
+
+  // ── 任務行 ──────────────────────────────────────────────────
+
+  function addRow() {
+    rowSeq++;
+    var id   = "r" + rowSeq;
+    activeRows.push(id);
+
+    var depts    = Object.keys(deptMap).sort();
+    var deptOpts = '<option value="">— 選擇部門 —</option>' +
+      depts.map(function(d) {
+        return '<option value="' + esc(d) + '">' + esc(d) +
+          '（' + deptMap[d].length + '人）</option>';
+      }).join("");
+
+    var block = document.createElement("div");
+    block.className = "task-block";
+    block.id = id;
+    block.innerHTML =
+      '<div class="task-block-head">' +
+        '<span class="task-num">部門 ' + rowSeq + '</span>' +
+        (rowSeq > 1
+          ? '<button class="btn-del" onclick="removeRow(\'' + id + '\')">✕ 移除</button>'
+          : '') +
+      '</div>' +
+      '<div class="two-col">' +
+        '<div>' +
+          '<label class="inner-label">部門 <span class="required">*</span></label>' +
+          '<select id="' + id + '_dept" onchange="onDeptChange(\'' + id + '\')">' + deptOpts + '</select>' +
+        '</div>' +
+        '<div>' +
+          '<label class="inner-label">負責人 <span class="required">*</span></label>' +
+          '<select id="' + id + '_person"><option value="">— 請先選部門 —</option></select>' +
+        '</div>' +
+      '</div>' +
+      '<div class="field-group">' +
+        '<label class="inner-label">此部門的任務說明 <span class="required">*</span></label>' +
+        '<textarea id="' + id + '_desc" rows="2"' +
+          ' placeholder="例：提供本季各通路銷售金額（含線上線下），以萬元為單位"></textarea>' +
+      '</div>' +
+      '<div class="two-col">' +
+        '<div>' +
+          '<label class="inner-label">截止日期 <span class="required">*</span></label>' +
+          '<input type="date" id="' + id + '_due">' +
+        '</div>' +
+        '<div>' +
+          '<label class="inner-label">需要提供的格式</label>' +
+          '<input type="text" id="' + id + '_req" placeholder="例：Excel 表格">' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById("task-list").appendChild(block);
+
+    // 預設截止（14天後）
+    var d = new Date(); d.setDate(d.getDate() + 14);
+    document.getElementById(id + "_due").value = d.toISOString().split("T")[0];
+
+    updateCount();
+  }
+
+  function removeRow(id) {
+    var el = document.getElementById(id);
+    if (el) el.remove();
+    activeRows = activeRows.filter(function(r) { return r !== id; });
+    updateCount();
+  }
+
+  function onDeptChange(id) {
+    var dept     = document.getElementById(id + "_dept").value;
+    var personEl = document.getElementById(id + "_person");
+    var members  = deptMap[dept] || [];
+
+    if (!dept) {
+      personEl.innerHTML = '<option value="">— 請先選部門 —</option>';
+      return;
+    }
+    if (members.length === 0) {
+      personEl.innerHTML = '<option value="">— 此部門尚無成員 —</option>';
+      return;
+    }
+
+    personEl.innerHTML = '<option value="">— 選擇負責人 —</option>' +
+      members.map(function(m) {
+        var tag = m.role === "admin" ? " 👑" : m.role === "manager" ? " 🏷️" : "";
+        return '<option value="' + m.lineId + '" data-name="' + esc(m.name) + '">' +
+          esc(m.name) + tag + '</option>';
+      }).join("");
+  }
+
+  function updateCount() {
+    var n = document.querySelectorAll(".task-block").length;
+    document.getElementById("dept-count").textContent = n + " 個部門";
+  }
+
+  // ── 提交 ────────────────────────────────────────────────────
+
+  async function submit() {
+    var pname = document.getElementById("pname").value.trim();
+    var pdesc = document.getElementById("pdesc").value.trim();
+
+    var valid = true;
+    function chk(v, eid) {
+      document.getElementById(eid).style.display = v ? "none" : "block";
+      if (!v) valid = false;
+    }
+    chk(pname, "err-pname");
+    chk(pdesc, "err-pdesc");
+
+    // collect tasks
+    var tasks = [];
+    document.querySelectorAll(".task-block").forEach(function(block) {
+      var id     = block.id;
+      var dept   = document.getElementById(id + "_dept").value;
+      var pEl    = document.getElementById(id + "_person");
+      var pid    = pEl.value;
+      var pOpt   = pEl.options[pEl.selectedIndex];
+      var pname2 = pOpt && pid ? (pOpt.getAttribute("data-name") || pOpt.text.replace(/ [👑🏷️]/g, "").trim()) : "";
+      var desc   = document.getElementById(id + "_desc").value.trim();
+      var due    = document.getElementById(id + "_due").value;
+      var req    = document.getElementById(id + "_req").value.trim();
+      tasks.push({ dept: dept, managerLineId: pid, managerName: pname2, description: desc, dueDate: due, requiredData: req });
+    });
+
+    var tasksOk = tasks.length > 0 && tasks.every(function(t) {
+      return t.dept && t.managerLineId && t.description && t.dueDate;
+    });
+    chk(tasksOk, "err-tasks");
+    if (!valid) return;
+
+    // show preview
+    var prevLines = tasks.map(function(t) {
+      return "・" + t.dept + "　" + t.managerName + "　→ " + t.dueDate;
+    }).join("<br>");
+    var summaryEl = document.getElementById("summary-box");
+    summaryEl.innerHTML = "✅ 即將通知以下部門：<br>" + prevLines;
+    summaryEl.style.display = "block";
+
+    var btn = document.getElementById("btn-submit");
+    btn.disabled    = true;
+    btn.textContent = "建立中…";
+
+    try {
+      var url = GAS_URL
+        + "?action=createProject"
+        + "&userId="          + enc(userId)
+        + "&projectName="     + enc(pname)
+        + "&description="     + enc(pdesc)
+        + "&requesterLineId=" + enc(userId)
+        + "&tasks="           + enc(JSON.stringify(tasks));
+
+      var res    = await fetch(url);
+      var result = await res.json();
+
+      if (result.status === "ok") {
+        var deptNames = tasks.map(function(t) { return t.dept; }).join("、");
+        var names     = tasks.map(function(t) { return t.managerName; }).join("、");
+        document.getElementById("succ-sub").innerHTML =
+          "<b>" + esc(pname) + "</b><br><br>" +
+          "已通知部門：" + esc(deptNames) + "<br>" +
+          "負責人：" + esc(names) + "<br>" +
+          "共 " + result.taskCount + " 個任務<br><br>" +
+          "<span style='font-size:12px;color:#999'>專案ID：" + result.projectId + "</span>";
+        hide("form-wrap");
+        show("success");
+        setTimeout(function() { if (liff.isInClient()) liff.closeWindow(); }, 5000);
+      } else {
+        throw new Error(result.error || "建立失敗");
+      }
+    } catch (err) {
+      btn.disabled    = false;
+      btn.textContent = "建立專案並通知各部門";
+      summaryEl.style.display = "none";
+      alert("建立失敗：" + err.message);
+    }
+  }
+
+  // ── 工具 ────────────────────────────────────────────────────
+  function show(id) {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById(id).style.display = "block";
+  }
+  function hide(id) { document.getElementById(id).style.display = "none"; }
+  function enc(s)   { return encodeURIComponent(s); }
+  function esc(s)   {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  init();
+</script>
+</body>
+</html>
