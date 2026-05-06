@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>成員管理 — 歐萊德小管家</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "Noto Sans TC", sans-serif;
+      background: #F0F4F8;
+      min-height: 100vh;
+      padding: 16px 14px 40px;
+    }
+    .header {
+      background: #1E3A5F; color: white;
+      padding: 16px; border-radius: 12px; margin-bottom: 14px;
+    }
+    .header .label   { font-size: 12px; opacity: 0.7; margin-bottom: 4px; }
+    .header .title   { font-size: 18px; font-weight: bold; }
+    .header .subtitle{ font-size: 13px; opacity: 0.75; margin-top: 4px; }
+    .count { font-size: 13px; color: #666; margin-bottom: 12px; }
+    .card {
+      background: white; border-radius: 12px;
+      padding: 14px; margin-bottom: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .member-header { display: flex; align-items: center; margin-bottom: 4px; }
+    .member-name { font-size: 16px; font-weight: bold; color: #1E3A5F; }
+    .role-badge {
+      font-size: 11px; padding: 2px 8px; border-radius: 10px;
+      margin-left: 8px; font-weight: normal;
+    }
+    .badge-admin   { background: #FFF3E0; color: #E65100; }
+    .badge-manager { background: #E3F2FD; color: #1565C0; }
+    .badge-staff   { background: #F3F4F6; color: #666; }
+    .member-id { font-size: 11px; color: #aaa; font-family: monospace; margin-bottom: 12px; }
+    .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .row label { font-size: 12px; color: #555; width: 36px; flex-shrink: 0; }
+    select {
+      flex: 1; padding: 9px 10px;
+      border: 1.5px solid #ddd; border-radius: 8px;
+      font-size: 14px; font-family: inherit; background: white;
+    }
+    select:focus { outline: none; border-color: #1E3A5F; }
+    .btn-save {
+      width: 100%; padding: 10px; background: #1E3A5F;
+      color: white; border: none; border-radius: 8px;
+      font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 4px;
+      transition: background 0.2s;
+    }
+    .btn-save:disabled { background: #bbb; }
+    .btn-save.saved    { background: #2E7D32; }
+    #loading { text-align: center; padding: 80px 20px; color: #999; font-size: 15px; }
+    #no-permission { display: none; text-align: center; padding: 80px 20px; }
+    #content { display: none; }
+    .search-bar {
+      width: 100%; padding: 10px 14px; margin-bottom: 12px;
+      border: 1.5px solid #ddd; border-radius: 10px;
+      font-size: 15px; font-family: inherit; background: white;
+    }
+    .search-bar:focus { outline: none; border-color: #1E3A5F; }
+  </style>
+</head>
+<body>
+
+<div id="loading">載入中…</div>
+
+<div id="no-permission">
+  <div style="font-size:44px">⛔</div>
+  <div style="margin-top:14px;font-size:17px;font-weight:bold;color:#C62828">您沒有管理成員的權限</div>
+</div>
+
+<div id="content">
+  <div class="header">
+    <div class="label">歐萊德小管家 — 管理功能</div>
+    <div class="title">👥 成員管理</div>
+    <div class="subtitle">設定每位成員的角色與部門</div>
+  </div>
+  <div class="count" id="count"></div>
+  <input class="search-bar" type="text" id="search" placeholder="🔍 搜尋姓名或 UID…" oninput="filterCards()">
+  <div id="member-list"></div>
+</div>
+
+<script>
+  var GAS_URL = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
+  var DEPTS   = ["","研發部","業務部","行銷部","倉儲部","生產部","採購部","財務部","人資部","資訊部","行政部"];
+  var ROLES   = [
+    { value: "admin",   label: "👑 管理員" },
+    { value: "manager", label: "🏷️ 主管" },
+    { value: "staff",   label: "👤 一般員工" },
+  ];
+  var userId;
+  var allMembers = [];
+
+  async function init() {
+    try {
+      await liff.init({ liffId: "2009974832-1tuzOcJQ" });
+      if (!liff.isLoggedIn()) { liff.login(); return; }
+      userId = liff.getContext().userId;
+
+      var res  = await fetch(GAS_URL + "?action=checkRole&userId=" + encodeURIComponent(userId));
+      var info = await res.json();
+      if (info.role !== "admin") {
+        document.getElementById("loading").style.display      = "none";
+        document.getElementById("no-permission").style.display = "block";
+        return;
+      }
+
+      await loadMembers();
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("content").style.display = "block";
+    } catch (err) {
+      document.getElementById("loading").innerHTML =
+        "<div style='color:#C62828;padding:20px;text-align:center'>載入失敗：" + escHtml(err.message) + "</div>";
+    }
+  }
+
+  async function loadMembers() {
+    var res  = await fetch(GAS_URL + "?action=getMembers&userId=" + encodeURIComponent(userId));
+    var data = await res.json();
+    allMembers = data.members || [];
+    document.getElementById("count").textContent = "共 " + allMembers.length + " 位成員已加入好友";
+    renderCards(allMembers);
+  }
+
+  function renderCards(members) {
+    var list = document.getElementById("member-list");
+    list.innerHTML = "";
+    members.forEach(function(m) { list.appendChild(buildCard(m)); });
+  }
+
+  function filterCards() {
+    var q = document.getElementById("search").value.trim().toLowerCase();
+    if (!q) { renderCards(allMembers); return; }
+    renderCards(allMembers.filter(function(m) {
+      return m.name.toLowerCase().includes(q) || m.lineId.toLowerCase().includes(q);
+    }));
+  }
+
+  function buildCard(m) {
+    var card = document.createElement("div");
+    card.className = "card";
+    card.dataset.lineId = m.lineId;
+
+    var badgeClass = "badge-" + (m.role || "staff");
+    card.innerHTML =
+      '<div class="member-header">' +
+        '<div class="member-name">' + escHtml(m.name) + '</div>' +
+        '<span class="role-badge ' + badgeClass + '" id="badge-' + m.lineId + '">' + (m.role || "staff") + '</span>' +
+      '</div>' +
+      '<div class="member-id">' + escHtml(m.lineId) + '</div>' +
+      '<div class="row"><label>角色</label>' +
+        '<select id="role-' + m.lineId + '">' +
+          ROLES.map(function(r) {
+            return '<option value="' + r.value + '"' + (m.role === r.value ? " selected" : "") + '>' + escHtml(r.label) + '</option>';
+          }).join("") +
+        '</select></div>' +
+      '<div class="row"><label>部門</label>' +
+        '<select id="dept-' + m.lineId + '">' +
+          DEPTS.map(function(d) {
+            return '<option value="' + d + '"' + (m.dept === d ? " selected" : "") + '>' + (d ? escHtml(d) : "— 請選擇 —") + '</option>';
+          }).join("") +
+        '</select></div>' +
+      '<button class="btn-save" id="btn-' + m.lineId + '" onclick="saveMember(' + JSON.stringify(m.lineId) + ')">儲存</button>';
+
+    return card;
+  }
+
+  async function saveMember(lineId) {
+    var role = document.getElementById("role-" + lineId).value;
+    var dept = document.getElementById("dept-" + lineId).value;
+    var btn  = document.getElementById("btn-" + lineId);
+
+    btn.disabled = true;
+    btn.textContent = "儲存中…";
+    btn.classList.remove("saved");
+
+    try {
+      var url = GAS_URL
+        + "?action=updateMember"
+        + "&userId="   + encodeURIComponent(userId)
+        + "&targetId=" + encodeURIComponent(lineId)
+        + "&role="     + encodeURIComponent(role)
+        + "&dept="     + encodeURIComponent(dept);
+
+      var res    = await fetch(url);
+      var result = await res.json();
+
+      if (result.status === "ok") {
+        btn.textContent = "✅ 已儲存";
+        btn.classList.add("saved");
+
+        // 更新 badge
+        var badge = document.getElementById("badge-" + lineId);
+        if (badge) {
+          badge.textContent = role;
+          badge.className   = "role-badge badge-" + role;
+        }
+        // 更新本地快取
+        var m = allMembers.find(function(x) { return x.lineId === lineId; });
+        if (m) { m.role = role; m.dept = dept; }
+
+        setTimeout(function() {
+          btn.disabled    = false;
+          btn.textContent = "儲存";
+          btn.classList.remove("saved");
+        }, 2000);
+      } else {
+        throw new Error(result.error || "更新失敗");
+      }
+    } catch (err) {
+      btn.disabled    = false;
+      btn.textContent = "儲存";
+      alert("儲存失敗：" + err.message);
+    }
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  init();
+</script>
+</body>
+</html>
