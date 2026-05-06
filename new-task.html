@@ -175,15 +175,15 @@
       if (!liff.isLoggedIn()) { liff.login(); return; }
       userId = liff.getContext().userId;
 
-      var roleRes = await fetch(GAS_URL + "?action=checkRole&userId=" + enc(userId));
-      var roleData = await roleRes.json();
-      if (roleData.role !== "admin") {
-        show("no-perm"); return;
-      }
-
-      var mRes  = await fetch(GAS_URL + "?action=getMembers&userId=" + enc(userId));
+      // 任何人都可以建立任務，直接取成員清單（無需管理員）
+      var mRes  = await fetch(GAS_URL + "?action=getMembersList");
       var mData = await mRes.json();
       allMembers = mData.members || [];
+      if (allMembers.length === 0) {
+        document.getElementById("loading").innerHTML =
+          "<div style='color:#C62828;padding:20px;text-align:center'>⚠️ 成員名單尚無資料。<br><br>請先請所有同仁加入 Bot 好友，<br>或由管理員在「成員名單」工作表新增資料。</div>";
+        return;
+      }
 
       var d = new Date(); d.setDate(d.getDate() + 7);
       document.getElementById("due-date").value = d.toISOString().split("T")[0];

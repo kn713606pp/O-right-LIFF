@@ -8,195 +8,337 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-           background: #f5f5f5; color: #333; }
+           background: #f4f5f7; color: #333; }
     .header { background: #4A235A; color: #fff; padding: 16px 20px; }
     .header h1 { font-size: 18px; font-weight: 700; }
+    .header p  { font-size: 12px; opacity: .8; margin-top: 4px; }
     .body { padding: 16px; max-width: 600px; margin: 0 auto; }
     .card { background: #fff; border-radius: 12px; padding: 16px;
             margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
     .meta { font-size: 12px; color: #888; margin-bottom: 4px; }
-    .subject { font-size: 18px; font-weight: 700; margin: 8px 0; }
+    .subject { font-size: 18px; font-weight: 700; margin: 8px 0 4px; }
+    .level-badge {
+      display: inline-block; padding: 3px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; background: #ede7f6; color: #4A235A;
+      margin-bottom: 8px;
+    }
+    .escalate-badge { background: #fff3e0; color: #E65100; }
     .content-box {
-      background: #f9f9f9; border-radius: 8px; padding: 12px;
-      font-size: 14px; line-height: 1.6; white-space: pre-wrap;
-      margin-top: 8px; color: #444;
+      background: #f9f9fb; border-radius: 8px; padding: 12px;
+      font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: #444;
+      margin-top: 8px;
     }
-    .status-badge {
-      display: inline-block; padding: 3px 10px; border-radius: 20px;
-      font-size: 12px; font-weight: 600; margin-top: 6px;
+
+    /* 前關意見 */
+    .prev-comments { margin-top: 10px; }
+    .prev-comments .title { font-size: 12px; font-weight: 700; color: #F57F17; margin-bottom: 6px; }
+    .comment-item {
+      padding: 8px 10px; background: #fff8e1; border-left: 3px solid #FFD54F;
+      border-radius: 4px; margin-bottom: 6px; font-size: 13px;
     }
-    .status-pending  { background: #FFF3E0; color: #E65100; }
-    .status-approved { background: #E8F5E9; color: #2E7D32; }
-    .status-rejected { background: #FFEBEE; color: #C62828; }
-    .status-info     { background: #FFF8E1; color: #F57F17; }
+    .comment-item .who  { font-weight: 700; color: #555; }
+    .comment-item .dec  { font-weight: 700; margin-left: 4px; }
+    .comment-item .txt  { color: #666; margin-top: 3px; font-size: 12px; }
+    .comment-item .time { color: #aaa; font-size: 11px; }
+    .dec-approve { color: #2E7D32; }
+    .dec-reject  { color: #C62828; }
+    .dec-info    { color: #E65100; }
+    .dec-escalate{ color: #4A235A; }
+
+    /* 鏈條顯示 */
+    .chain-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .chain-node {
+      padding: 4px 10px; border-radius: 20px; font-size: 12px;
+      background: #ede7f6; color: #4A235A;
+    }
+    .chain-node.active { background: #4A235A; color: #fff; font-weight: 700; }
+    .chain-node.done   { background: #e8f5e9; color: #2E7D32; }
+    .chain-arrow { color: #aaa; font-size: 12px; }
+
     label { font-size: 13px; font-weight: 600; color: #555; display: block; margin-bottom: 6px; }
-    textarea {
+    textarea, select {
       width: 100%; padding: 10px 12px; border: 1.5px solid #ddd;
-      border-radius: 8px; font-size: 14px; resize: vertical; min-height: 90px;
+      border-radius: 8px; font-size: 14px;
     }
-    textarea:focus { outline: none; border-color: #4A235A; }
-    .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+    textarea { resize: vertical; min-height: 80px; }
+    textarea:focus, select:focus { outline: none; border-color: #4A235A; }
+
+    .btn-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
     .btn {
-      flex: 1; padding: 12px; border: none; border-radius: 10px;
-      font-size: 14px; font-weight: 700; cursor: pointer;
+      flex: 1; min-width: 80px; padding: 12px 8px; border: none;
+      border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;
     }
-    .btn-approve { background: #2E7D32; color: #fff; }
-    .btn-reject  { background: #C62828; color: #fff; }
-    .btn-info    { background: #E65100; color: #fff; }
+    .btn-approve  { background: #2E7D32; color: #fff; }
+    .btn-reject   { background: #C62828; color: #fff; }
+    .btn-info     { background: #E65100; color: #fff; }
+    .btn-escalate { background: #4A235A; color: #fff; }
     .btn:disabled { background: #aaa; cursor: not-allowed; }
+
+    /* 加簽選人 */
+    #escalatePanel { display: none; margin-top: 12px; padding: 12px;
+                     background: #f3e5f5; border-radius: 8px; }
+    #escalatePanel label { color: #4A235A; }
+
     .success { text-align: center; padding: 50px 20px; }
     .success .icon { font-size: 64px; margin-bottom: 16px; }
     .success h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
     #loading { text-align: center; padding: 60px 20px; color: #888; }
     .already-done { text-align: center; padding: 40px 20px; color: #666; }
+    .status-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 20px;
+      font-size: 13px; font-weight: 600; margin-top: 8px;
+    }
+    .s-pending  { background: #fff3e0; color: #E65100; }
+    .s-approved { background: #e8f5e9; color: #2E7D32; }
+    .s-rejected { background: #ffebee; color: #C62828; }
+    .s-info     { background: #fff8e1; color: #F57F17; }
   </style>
 </head>
 <body>
-
 <div id="loading">載入中…</div>
+
 <div id="app" style="display:none">
   <div class="header">
     <h1>📋 審核請示</h1>
+    <p id="headerSub">填寫意見並選擇批准 / 退回 / 加簽</p>
   </div>
   <div class="body">
     <div class="card" id="reqDetail"></div>
+    <div class="card" id="replyPanel">
+      <label>您的審核意見（選填，但建議填寫作為決策依據）</label>
+      <textarea id="comment" placeholder="填寫批准條件、退回原因、補充需求，或說明為何加簽至上級…"></textarea>
 
-    <div class="card" id="replyForm">
-      <label>回覆說明（選填）</label>
-      <textarea id="replyText" placeholder="填寫批准條件、退回原因、或需要補充的資訊…"></textarea>
-      <div class="btn-row">
-        <button class="btn btn-approve" id="btnApprove" onclick="doReply('approve')">✅ 批准</button>
-        <button class="btn btn-reject"  id="btnReject"  onclick="doReply('reject')">❌ 退回</button>
-        <button class="btn btn-info"    id="btnInfo"    onclick="doReply('info')">⚠️ 需補充</button>
+      <div id="escalatePanel">
+        <label>加簽對象（插入至您之後，待對方決策）</label>
+        <select id="escalatePerson">
+          <option value="">— 選擇加簽主管 —</option>
+        </select>
       </div>
+
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn btn-approve"  id="btnApprove"  onclick="doAction('approve')">✅ 批准</button>
+        <button class="btn btn-reject"   id="btnReject"   onclick="doAction('reject')">❌ 退回</button>
+        <button class="btn btn-info"     id="btnInfo"     onclick="doAction('info')">⚠️ 補充</button>
+        <button class="btn btn-escalate" id="btnEscalate" onclick="toggleEscalate()">🔼 加簽</button>
+      </div>
+      <p id="escalateSubmitRow" style="display:none;margin-top:8px;">
+        <button class="btn btn-escalate" style="width:100%;" onclick="doAction('escalate')">🔼 確認加簽送出</button>
+      </p>
     </div>
   </div>
 </div>
 
-<div id="successScreen" style="display:none" class="body">
-  <div class="success">
-    <div class="icon" id="successIcon"></div>
-    <h2 id="successTitle"></h2>
-    <p id="successDesc" style="color:#666; font-size:14px;"></p>
-    <p style="margin-top:20px; font-size:13px; color:#888;">已通知請示人，可關閉此頁面。</p>
+<div id="successScreen" style="display:none">
+  <div class="body">
+    <div class="success">
+      <div class="icon" id="succIcon"></div>
+      <h2 id="succTitle"></h2>
+      <p id="succDesc" style="color:#666;font-size:14px;"></p>
+      <p style="margin-top:20px;font-size:13px;color:#888;">已通知相關人員，可關閉此頁面。</p>
+    </div>
   </div>
 </div>
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
-let myUserId = "";
-let reqId    = "";
+const GAS = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
+let myId = "", myName = "";
+let reqData = null;
+let membersMap = {};
+let escalateShowing = false;
 
-function getParam(key) {
-  return new URLSearchParams(window.location.search).get(key) || "";
-}
+function qp(k) { return new URLSearchParams(location.search).get(k) || ""; }
 
 async function init() {
-  reqId = getParam("reqId");
+  const reqId = qp("reqId");
   if (!reqId) {
     document.getElementById("loading").innerHTML =
       "<p style='padding:40px;text-align:center;color:#C62828;'>❌ 缺少請示 ID</p>";
     return;
   }
-
   await liff.init({ liffId: "2009974832-1tuzOcJQ" });
   if (!liff.isLoggedIn()) { liff.login(); return; }
+  const prof = await liff.getProfile();
+  myId   = prof.userId;
+  myName = prof.displayName;
 
-  const profile = await liff.getProfile();
-  myUserId = profile.userId;
-
-  // Load request detail via getRequests (pending for recipient)
   try {
-    const url = GAS_URL + "?action=getRequests&userId=" + myUserId + "&type=all";
-    const res  = await fetch(url);
-    const data = await res.json();
-    const all  = (data.requests || []);
-    const req  = all.filter(function(r) { return r.requestId === reqId; })[0];
-
-    if (!req) {
+    // 取請示詳情
+    const detRes  = await fetch(GAS + "?action=getRequests&type=detail&userId=" + myId + "&requestId=" + reqId);
+    const detData = await detRes.json();
+    if (detData.error) {
       document.getElementById("loading").innerHTML =
-        "<p style='padding:40px;text-align:center;color:#C62828;'>❌ 找不到此請示，或您沒有查看權限。</p>";
+        "<p style='padding:40px;text-align:center;color:#C62828;'>❌ " + detData.error + "</p>";
       return;
     }
+    reqData = detData;
 
-    renderDetail(req);
+    // 取成員清單（供加簽選人）
+    const mRes  = await fetch(GAS + "?action=getMembersList");
+    const mData = await mRes.json();
+    (mData.members || []).forEach(m => { membersMap[m.lineId] = m; });
+
+    const escSel = document.getElementById("escalatePerson");
+    (mData.members || [])
+      .filter(m => (m.role === "admin" || m.role === "manager") && m.lineId !== myId)
+      .forEach(m => {
+        const opt = document.createElement("option");
+        opt.value       = m.lineId;
+        opt.textContent = (m.role === "admin" ? "👑" : "🏷️") + " " + m.name + (m.dept ? "（" + m.dept + "）" : "");
+        escSel.appendChild(opt);
+      });
+
+    renderDetail();
     document.getElementById("loading").style.display = "none";
     document.getElementById("app").style.display     = "block";
 
-    if (req.status !== "待審核") {
-      document.getElementById("replyForm").innerHTML =
-        "<div class='already-done'><p style='font-size:32px;'>✅</p>"
-        + "<p style='margin-top:12px;font-weight:700;'>此請示已審核完畢</p>"
-        + "<p style='margin-top:6px;color:#666;'>狀態：" + req.status + "</p>"
-        + (req.reply ? "<p style='margin-top:6px;color:#666;'>回覆：" + req.reply + "</p>" : "")
-        + "</div>";
+    // 如果不是當前審核人，隱藏回覆面板
+    const currentApproverId = reqData.approverIds[reqData.currentLevel];
+    if (reqData.status !== "待審核" && reqData.status !== "需補充") {
+      showDonePanel();
+    } else if (currentApproverId !== myId) {
+      document.getElementById("replyPanel").innerHTML =
+        "<div class='already-done'><p style='font-size:28px;'>👀</p>"
+        + "<p style='margin-top:10px;font-weight:700;'>目前輪到其他人審核</p>"
+        + "<p style='margin-top:6px;color:#666;font-size:13px;'>第 " + (reqData.currentLevel + 1) + " 關審核人：" + (reqData.approverNames[reqData.currentLevel] || "？") + "</p></div>";
     }
-  } catch (err) {
+  } catch (e) {
     document.getElementById("loading").innerHTML =
-      "<p style='padding:40px;text-align:center;color:#C62828;'>⛔ 網路錯誤，請稍後再試</p>";
+      "<p style='padding:40px;text-align:center;color:#C62828;'>載入失敗：" + e.message + "</p>";
   }
 }
 
-function renderDetail(req) {
-  const statusClass = {
-    "待審核": "status-pending",
-    "已批准": "status-approved",
-    "已退回": "status-rejected",
-    "需補充": "status-info",
-  }[req.status] || "status-pending";
+function renderDetail() {
+  const statusClass = { "待審核": "s-pending", "已批准": "s-approved", "已退回": "s-rejected", "需補充": "s-info" };
+  const lvl   = reqData.currentLevel;
+  const total = reqData.approverIds.length;
+
+  // 簽核鏈條
+  let chainHtml = "<div class='chain-bar'>";
+  reqData.approverNames.forEach((n, i) => {
+    if (i > 0) chainHtml += "<span class='chain-arrow'>→</span>";
+    const cls = i < lvl ? "chain-node done" : i === lvl ? "chain-node active" : "chain-node";
+    chainHtml += "<span class='" + cls + "'>" + (i < lvl ? "✓ " : "") + n + "</span>";
+  });
+  chainHtml += "</div>";
+
+  // 前關意見
+  let commentsHtml = "";
+  if (reqData.comments && reqData.comments.length > 0) {
+    const decColors = { "批准": "dec-approve", "退回": "dec-reject", "需補充": "dec-info", "加簽": "dec-escalate" };
+    const items = reqData.comments.map(c => {
+      const cls = decColors[c.decision] || "";
+      return "<div class='comment-item'>"
+        + "<div><span class='who'>第" + c.level + "關 " + c.name + "</span>"
+        + "<span class='dec " + cls + "'>【" + c.decision + "】</span>"
+        + "<span class='time'> " + (c.time || "").substring(0, 16) + "</span></div>"
+        + (c.comment ? "<div class='txt'>" + esc(c.comment) + "</div>" : "")
+        + "</div>";
+    }).join("");
+    commentsHtml = "<div class='prev-comments'>"
+      + "<div class='title'>前關審核意見（決策參考）</div>" + items + "</div>";
+  }
 
   document.getElementById("reqDetail").innerHTML =
-    "<div class='meta'>請示人：" + (req.requesterName || "—") + "　時間：" + (req.createdTime || "") + "</div>"
-    + "<div class='subject'>" + req.subject + "</div>"
-    + "<span class='status-badge " + statusClass + "'>" + req.status + "</span>"
-    + (req.content
-        ? "<div class='content-box'>" + escHtml(req.content) + "</div>"
-        : "<div style='margin-top:8px;font-size:13px;color:#aaa;'>（無詳細說明）</div>");
+    "<div class='meta'>請示人：" + reqData.requesterName + "　提交：" + reqData.createdTime + "</div>"
+    + "<div class='subject'>" + esc(reqData.subject) + "</div>"
+    + "<span class='status-badge " + (statusClass[reqData.status] || "s-pending") + "'>" + reqData.status + "</span>"
+    + "<span class='level-badge' style='margin-left:6px;'>第 " + (lvl + 1) + " 關 / 共 " + total + " 關</span>"
+    + chainHtml
+    + (reqData.content ? "<div class='content-box'>" + esc(reqData.content) + "</div>" : "")
+    + commentsHtml;
 }
 
-function escHtml(str) {
-  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function showDonePanel() {
+  const statusClass = { "已批准": "s-approved", "已退回": "s-rejected", "需補充": "s-info" };
+  document.getElementById("replyPanel").innerHTML =
+    "<div class='already-done'><p style='font-size:32px;'>" + (reqData.status === "已批准" ? "✅" : reqData.status === "已退回" ? "❌" : "⚠️") + "</p>"
+    + "<p style='margin-top:12px;font-weight:700;'>此請示已審核完畢</p>"
+    + "<p style='margin-top:6px;'><span class='status-badge " + (statusClass[reqData.status] || "") + "'>" + reqData.status + "</span></p></div>";
 }
 
-async function doReply(decision) {
-  const reply  = document.getElementById("replyText").value.trim();
-  const decMap = { approve: "批准", reject: "退回", info: "需補充" };
-  const btnIds = ["btnApprove", "btnReject", "btnInfo"];
-  btnIds.forEach(function(id) {
-    document.getElementById(id).disabled = true;
-  });
+function toggleEscalate() {
+  escalateShowing = !escalateShowing;
+  document.getElementById("escalatePanel").style.display      = escalateShowing ? "block" : "none";
+  document.getElementById("escalateSubmitRow").style.display  = escalateShowing ? "block" : "none";
+}
 
-  const params = new URLSearchParams({
-    action:    "replyRequest",
-    userId:    myUserId,
-    requestId: reqId,
-    decision:  decision,
-    reply:     reply,
+async function doAction(type) {
+  const comment   = document.getElementById("comment").value.trim();
+  const allBtns   = ["btnApprove","btnReject","btnInfo","btnEscalate"];
+  let actionLabel = "", actionColor = "", actionIcon = "";
+
+  if (type === "escalate") {
+    const escId = document.getElementById("escalatePerson").value;
+    if (!escId) { alert("請選擇加簽對象"); return; }
+    const escName = (membersMap[escId] || {}).name || escId;
+    allBtns.forEach(id => { document.getElementById(id).disabled = true; });
+
+    const p = new URLSearchParams({
+      action:          "escalateRequest",
+      userId:          myId,
+      requestId:       reqData.requestId,
+      newApproverId:   escId,
+      newApproverName: escName,
+      comment:         comment,
+    });
+    try {
+      const res  = await fetch(GAS + "?" + p.toString());
+      const data = await res.json();
+      if (data.status === "ok") {
+        showSuccess("🔼", "已加簽送出", "已加簽至「" + escName + "」，並通知起單人。");
+      } else {
+        alert("失敗：" + (data.error || "未知錯誤"));
+        allBtns.forEach(id => { document.getElementById(id).disabled = false; });
+      }
+    } catch (e) {
+      alert("網路錯誤，請重試");
+      allBtns.forEach(id => { document.getElementById(id).disabled = false; });
+    }
+    return;
+  }
+
+  allBtns.forEach(id => { document.getElementById(id).disabled = true; });
+
+  const p = new URLSearchParams({
+    action:    "approveRequest",
+    userId:    myId,
+    requestId: reqData.requestId,
+    decision:  type,
+    comment:   comment,
   });
+  const iconMap  = { approve: "✅", reject: "❌", info: "⚠️" };
+  const titleMap = { approve: "已批准", reject: "已退回", info: "已標記需補充" };
+  const descMap  = {
+    approve: "已送至下一關（或完成最終批准），起單人已收到通知。",
+    reject:  "已退回，起單人已收到通知。",
+    info:    "已通知起單人補充資料。",
+  };
 
   try {
-    const res  = await fetch(GAS_URL + "?" + params.toString());
+    const res  = await fetch(GAS + "?" + p.toString());
     const data = await res.json();
     if (data.status === "ok") {
-      document.getElementById("app").style.display           = "none";
-      document.getElementById("successScreen").style.display = "block";
-      const iconMap  = { approve: "✅", reject: "❌", info: "⚠️" };
-      const titleMap = { approve: "已批准請示", reject: "已退回請示", info: "已要求補充" };
-      document.getElementById("successIcon").textContent  = iconMap[decision]  || "✅";
-      document.getElementById("successTitle").textContent = titleMap[decision] || "審核完成";
-      document.getElementById("successDesc").textContent  = reply ? "回覆說明：" + reply : "請示人已收到通知。";
+      showSuccess(iconMap[type], titleMap[type], descMap[type]);
     } else {
       alert("操作失敗：" + (data.error || "未知錯誤"));
-      btnIds.forEach(function(id) {
-        document.getElementById(id).disabled = false;
-      });
+      allBtns.forEach(id => { document.getElementById(id).disabled = false; });
     }
-  } catch (err) {
-    alert("網路錯誤，請稍後再試");
-    btnIds.forEach(function(id) {
-      document.getElementById(id).disabled = false;
-    });
+  } catch (e) {
+    alert("網路錯誤，請重試");
+    allBtns.forEach(id => { document.getElementById(id).disabled = false; });
   }
+}
+
+function showSuccess(icon, title, desc) {
+  document.getElementById("app").style.display           = "none";
+  document.getElementById("successScreen").style.display = "block";
+  document.getElementById("succIcon").textContent  = icon;
+  document.getElementById("succTitle").textContent = title;
+  document.getElementById("succDesc").textContent  = desc;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");
 }
 
 init();

@@ -8,7 +8,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-           background: #f5f5f5; color: #333; }
+           background: #f4f5f7; color: #333; }
     .header { background: #4A235A; color: #fff; padding: 16px 20px; }
     .header h1 { font-size: 18px; font-weight: 700; }
     .header p  { font-size: 12px; opacity: .8; margin-top: 4px; }
@@ -16,177 +16,251 @@
     .card { background: #fff; border-radius: 12px; padding: 16px;
             margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
     label { font-size: 13px; font-weight: 600; color: #555; display: block; margin-bottom: 6px; }
-    .required::after { content: " *"; color: #C62828; }
-    input, select, textarea {
+    .req::after { content: " *"; color: #C62828; }
+    input[type=text], textarea {
       width: 100%; padding: 10px 12px; border: 1.5px solid #ddd;
       border-radius: 8px; font-size: 14px; color: #333;
-      transition: border-color .2s;
     }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: #4A235A; }
-    textarea { resize: vertical; min-height: 100px; }
-    .recipient-info { margin-top: 6px; font-size: 12px; color: #888; min-height: 18px; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: #4A235A; }
+    textarea { resize: vertical; min-height: 90px; }
+
+    /* 簽核鏈 */
+    .chain-title { font-size: 13px; font-weight: 600; color: #555; margin-bottom: 8px; }
+    .chain-hint  { font-size: 12px; color: #888; margin-bottom: 10px; }
+    .chain-item {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 8px; padding: 10px 12px;
+      background: #f9f9fb; border-radius: 8px;
+      border: 1.5px solid #e0e0e0;
+    }
+    .chain-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #4A235A; color: #fff; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .chain-select { flex: 1; padding: 6px 10px; border: 1.5px solid #ddd;
+                    border-radius: 6px; font-size: 13px; background: #fff; }
+    .chain-del {
+      width: 28px; height: 28px; border-radius: 50%; border: none;
+      background: #ffebee; color: #C62828; font-size: 16px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .btn-add-level {
+      width: 100%; padding: 10px; border: 1.5px dashed #4A235A; border-radius: 8px;
+      background: transparent; color: #4A235A; font-size: 13px; font-weight: 600;
+      cursor: pointer; margin-top: 4px;
+    }
+    .btn-add-level:hover { background: #f3e5f5; }
+    .flow-preview {
+      margin-top: 10px; padding: 10px 12px; background: #f3e5f5;
+      border-radius: 8px; font-size: 12px; color: #4A235A;
+      display: none;
+    }
+
     .btn-submit {
       width: 100%; padding: 14px; background: #4A235A; color: #fff;
       border: none; border-radius: 10px; font-size: 16px; font-weight: 700;
-      cursor: pointer; margin-top: 8px;
+      cursor: pointer; margin-top: 4px;
     }
     .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
-    .success { text-align: center; padding: 40px 20px; }
-    .success .icon { font-size: 64px; margin-bottom: 16px; }
-    .success h2 { font-size: 20px; font-weight: 700; color: #2E7D32; margin-bottom: 8px; }
-    .success p  { font-size: 14px; color: #666; margin-bottom: 4px; }
-    .error-msg { color: #C62828; font-size: 12px; margin-top: 4px; display: none; }
+    .err { color: #C62828; font-size: 12px; margin-top: 4px; display: none; }
     #loading { text-align: center; padding: 60px 20px; color: #888; }
+    .success { text-align: center; padding: 50px 20px; }
+    .success .icon { font-size: 64px; margin-bottom: 16px; }
+    .success h2   { font-size: 20px; font-weight: 700; color: #2E7D32; margin-bottom: 8px; }
+    .success p    { font-size: 14px; color: #666; margin-bottom: 6px; }
+    .chain-flow   { color: #4A235A; font-weight: 600; margin-top: 8px; }
   </style>
 </head>
 <body>
-
 <div id="loading">載入中…</div>
 
 <div id="app" style="display:none">
   <div class="header">
     <h1>📬 提交請示</h1>
-    <p>向主管或管理員提交請示、申請或諮詢</p>
+    <p>指定簽核鏈，每關意見自動傳遞</p>
   </div>
-
   <div class="body">
+
     <div class="card">
-      <label class="required">請示對象</label>
-      <select id="recipient">
-        <option value="">— 選擇主管 —</option>
-      </select>
-      <div class="recipient-info" id="recipientInfo"></div>
+      <label class="req">請示主旨</label>
+      <input type="text" id="subject" placeholder="簡要說明請示事項（50字以內）" maxlength="50">
+      <div class="err" id="subjectErr">請填寫主旨</div>
     </div>
 
     <div class="card">
-      <label class="required">請示主旨</label>
-      <input type="text" id="subject" placeholder="簡短說明請示事項（20字以內）" maxlength="50">
-      <div class="error-msg" id="subjectErr">請填寫主旨</div>
+      <label>請示內容說明</label>
+      <textarea id="content" placeholder="詳細說明背景、需求、預期結果、金額/數量等（建議填寫，作為各關決策依據）"></textarea>
     </div>
 
     <div class="card">
-      <label>請示內容</label>
-      <textarea id="content" placeholder="詳細說明背景、需求、預期結果等（選填，但建議填寫）"></textarea>
+      <div class="chain-title req">簽核鏈（由下而上，按順序排列）</div>
+      <div class="chain-hint">第1關最先收到，最後一關批准後視為整單通過</div>
+      <div id="chainList"></div>
+      <button class="btn-add-level" onclick="addLevel()">＋ 加入下一層簽核人</button>
+      <div class="flow-preview" id="flowPreview"></div>
+      <div class="err" id="chainErr">請至少選擇一位簽核人</div>
     </div>
 
-    <button class="btn-submit" id="btnSubmit" onclick="submitRequest()">📬 送出請示</button>
+    <button class="btn-submit" id="btnSubmit" onclick="submit()">📬 送出請示</button>
   </div>
 </div>
 
-<div id="successScreen" style="display:none" class="body">
-  <div class="success">
-    <div class="icon">📬</div>
-    <h2>請示已送出！</h2>
-    <p id="successMsg1"></p>
-    <p id="successMsg2" style="color:#4A235A; font-weight:600; margin-top:12px;"></p>
-    <p style="margin-top:20px; font-size:13px; color:#888;">
-      傳「我的請示」可查看審核狀態
-    </p>
+<div id="successScreen" style="display:none">
+  <div class="body">
+    <div class="success">
+      <div class="icon">📬</div>
+      <h2>請示已送出！</h2>
+      <p id="succSubject" style="font-weight:600;font-size:16px;"></p>
+      <p class="chain-flow" id="succChain"></p>
+      <p style="margin-top:16px;font-size:13px;color:#888;">第一關審核人已收到通知<br>傳「我的請示」可查看審核進度</p>
+    </div>
   </div>
 </div>
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
-let myUserId = "";
-let myName   = "";
-let membersMap = {};  // lineId -> member
+const GAS = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
+let myId = "", myName = "";
+let membersMap = {};   // lineId → member
+let approverOptions = [];  // [{value, label}] managers+admins only
 
 async function init() {
   await liff.init({ liffId: "2009974832-1tuzOcJQ" });
   if (!liff.isLoggedIn()) { liff.login(); return; }
+  const p = await liff.getProfile();
+  myId   = p.userId;
+  myName = p.displayName;
 
-  const profile = await liff.getProfile();
-  myUserId = profile.userId;
-  myName   = profile.displayName;
-
-  // Load managers/admins
-  const url = GAS_URL + "?action=getMembers&userId=" + myUserId;
   try {
-    const res  = await fetch(url);
+    const res  = await fetch(GAS + "?action=getMembersList");
     const data = await res.json();
-    if (data.error) {
-      // Not admin — load all members via checkRole fallback
-      // Just show all members from public endpoint is not available,
-      // so we'll use a workaround: getMembers with the current user.
-      // If not admin, we show a message.
+    const all  = data.members || [];
+    all.forEach(m => { membersMap[m.lineId] = m; });
+    approverOptions = all
+      .filter(m => (m.role === "admin" || m.role === "manager") && m.lineId !== myId)
+      .map(m => ({
+        value: m.lineId,
+        label: (m.role === "admin" ? "👑" : "🏷️") + " " + m.name + (m.dept ? "（" + m.dept + "）" : ""),
+      }));
+
+    if (approverOptions.length === 0) {
       document.getElementById("loading").innerHTML =
-        "<p style='padding:40px;text-align:center;color:#C62828;'>⛔ 載入失敗。請確認您已加入成員名單。</p>";
+        "<p style='padding:40px;text-align:center;color:#C62828;'>⚠️ 成員名單中尚無主管，請先由管理員設定成員角色。</p>";
       return;
     }
-    const members = data.members || [];
-    const sel = document.getElementById("recipient");
-    members
-      .filter(function(m) { return m.role === "admin" || m.role === "manager"; })
-      .filter(function(m) { return m.lineId !== myUserId; })
-      .forEach(function(m) {
-        membersMap[m.lineId] = m;
-        const opt = document.createElement("option");
-        opt.value       = m.lineId;
-        opt.textContent = (m.role === "admin" ? "👑 " : "🏷️ ")
-                        + m.name + (m.dept ? "（" + m.dept + "）" : "");
-        sel.appendChild(opt);
-      });
-    sel.addEventListener("change", function() {
-      const m = membersMap[sel.value];
-      document.getElementById("recipientInfo").textContent =
-        m ? "部門：" + (m.dept || "—") + "　角色：" + m.role : "";
-    });
-  } catch (err) {
-    document.getElementById("loading").innerHTML =
-      "<p style='padding:40px;text-align:center;color:#C62828;'>⛔ 網路錯誤，請稍後再試。</p>";
-    return;
-  }
 
-  document.getElementById("loading").style.display = "none";
-  document.getElementById("app").style.display     = "block";
+    addLevel();  // 預設一關
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("app").style.display     = "block";
+  } catch (e) {
+    document.getElementById("loading").innerHTML =
+      "<p style='padding:40px;text-align:center;color:#C62828;'>載入失敗，請重試</p>";
+  }
 }
 
-async function submitRequest() {
-  const recipientId   = document.getElementById("recipient").value;
-  const subject       = document.getElementById("subject").value.trim();
-  const content       = document.getElementById("content").value.trim();
-  const subjectErr    = document.getElementById("subjectErr");
+function addLevel() {
+  const list  = document.getElementById("chainList");
+  const idx   = list.children.length;
+  const item  = document.createElement("div");
+  item.className = "chain-item";
+  item.dataset.index = idx;
 
-  let valid = true;
-  subjectErr.style.display = "none";
+  const num = document.createElement("div");
+  num.className = "chain-num";
+  num.textContent = idx + 1;
 
-  if (!subject) { subjectErr.style.display = "block"; valid = false; }
-  if (!recipientId) { alert("請選擇請示對象"); valid = false; }
-  if (!valid) return;
+  const sel = document.createElement("select");
+  sel.className = "chain-select";
+  sel.innerHTML = '<option value="">— 選擇簽核人 —</option>'
+    + approverOptions.map(o => `<option value="${o.value}">${o.label}</option>`).join("");
+  sel.addEventListener("change", updatePreview);
+
+  const del = document.createElement("button");
+  del.className = "chain-del";
+  del.textContent = "×";
+  del.onclick = function() {
+    if (list.children.length <= 1) return; // 至少保留一關
+    list.removeChild(item);
+    renumber();
+    updatePreview();
+  };
+
+  item.appendChild(num);
+  item.appendChild(sel);
+  item.appendChild(del);
+  list.appendChild(item);
+  updatePreview();
+}
+
+function renumber() {
+  const items = document.getElementById("chainList").children;
+  for (let i = 0; i < items.length; i++) {
+    items[i].querySelector(".chain-num").textContent = i + 1;
+    items[i].dataset.index = i;
+  }
+}
+
+function getChain() {
+  const items = document.getElementById("chainList").children;
+  const ids = [], names = [];
+  for (const item of items) {
+    const v = item.querySelector("select").value;
+    if (v) {
+      ids.push(v);
+      names.push(membersMap[v] ? membersMap[v].name : v);
+    }
+  }
+  return { ids, names };
+}
+
+function updatePreview() {
+  const { ids, names } = getChain();
+  const box = document.getElementById("flowPreview");
+  if (names.length === 0) { box.style.display = "none"; return; }
+  box.style.display = "block";
+  box.textContent = "您 → " + names.join(" → ") + " → 批准完成";
+}
+
+async function submit() {
+  const subject = document.getElementById("subject").value.trim();
+  const content = document.getElementById("content").value.trim();
+  const { ids, names } = getChain();
+
+  let ok = true;
+  document.getElementById("subjectErr").style.display = !subject ? "block" : "none";
+  document.getElementById("chainErr").style.display   = ids.length === 0 ? "block" : "none";
+  if (!subject || ids.length === 0) return;
 
   const btn = document.getElementById("btnSubmit");
   btn.disabled    = true;
   btn.textContent = "送出中…";
 
-  const recipientMember = membersMap[recipientId] || {};
-  const params = new URLSearchParams({
-    action:          "createRequest",
-    userId:          myUserId,
-    requesterName:   myName,
-    recipientLineId: recipientId,
-    recipientName:   recipientMember.name || "",
-    subject:         subject,
-    content:         content,
+  const p = new URLSearchParams({
+    action:        "createRequest",
+    userId:        myId,
+    requesterName: myName,
+    approverIds:   ids.join(","),
+    approverNames: names.join(","),
+    subject:       subject,
+    content:       content,
   });
 
   try {
-    const res  = await fetch(GAS_URL + "?" + params.toString());
+    const res  = await fetch(GAS + "?" + p.toString());
     const data = await res.json();
     if (data.status === "ok") {
       document.getElementById("app").style.display           = "none";
       document.getElementById("successScreen").style.display = "block";
-      document.getElementById("successMsg1").textContent =
-        "已送出給「" + (recipientMember.name || "主管") + "」，對方將收到通知。";
-      document.getElementById("successMsg2").textContent = "請示 ID：" + data.requestId;
+      document.getElementById("succSubject").textContent = subject;
+      document.getElementById("succChain").textContent   = "簽核鏈：" + names.join(" → ");
     } else {
       alert("送出失敗：" + (data.error || "未知錯誤"));
-      btn.disabled    = false;
-      btn.textContent = "📬 送出請示";
+      btn.disabled = false; btn.textContent = "📬 送出請示";
     }
-  } catch (err) {
+  } catch (e) {
     alert("網路錯誤，請稍後再試");
-    btn.disabled    = false;
-    btn.textContent = "📬 送出請示";
+    btn.disabled = false; btn.textContent = "📬 送出請示";
   }
 }
 
