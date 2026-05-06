@@ -139,6 +139,38 @@
   </div>
 </div>
 
+<!-- 轉成任務 Bottom Sheet -->
+<div id="convertOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;overflow-y:auto;">
+  <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;position:absolute;bottom:0;left:0;right:0;max-height:85vh;overflow-y:auto;">
+    <div style="font-size:18px;font-weight:700;color:#2E7D32;margin-bottom:4px;">✅ 請示已全程批准！</div>
+    <div style="font-size:14px;color:#666;margin-bottom:16px;">是否將此請示轉成執行任務？</div>
+
+    <div style="margin-bottom:12px;">
+      <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">任務名稱</label>
+      <input type="text" id="conv-name" style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;" placeholder="預設同請示主旨">
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">指派給 <span style="color:#C62828;">*</span></label>
+      <select id="conv-assignees" multiple style="width:100%;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;min-height:96px;"></select>
+      <div style="font-size:12px;color:#888;margin-top:4px;">長按或按住 Ctrl/Cmd 可多選</div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">截止日期 <span style="color:#C62828;">*</span></label>
+      <input type="date" id="conv-due" style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;">
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">需回報的資料</label>
+      <input type="text" id="conv-reqdata" style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;" placeholder="例：執行結果、完成報告">
+    </div>
+
+    <button id="btnConvert" onclick="convertToTask()" style="width:100%;padding:14px;background:#2E7D32;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px;">✅ 轉成任務並通知</button>
+    <button onclick="skipConvert()" style="width:100%;padding:12px;background:#f4f5f7;color:#555;border:1.5px solid #ddd;border-radius:10px;font-size:14px;cursor:pointer;">略過，不轉換</button>
+  </div>
+</div>
+
 <script>
 const GAS = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
 let myId = "", myName = "";
@@ -386,7 +418,11 @@ async function doAction(type) {
     const res  = await fetch(GAS + "?" + p.toString());
     const data = await res.json();
     if (data.status === "ok") {
-      showSuccess(iconMap[type], titleMap[type], descMap[type]);
+      if (type === "approve" && data.finalApproval) {
+        showConvertPanel();
+      } else {
+        showSuccess(iconMap[type], titleMap[type], descMap[type]);
+      }
     } else {
       alert("操作失敗：" + (data.error || "未知錯誤"));
       allBtns.forEach(id => { document.getElementById(id).disabled = false; });
@@ -395,6 +431,85 @@ async function doAction(type) {
     alert("網路錯誤，請重試");
     allBtns.forEach(id => { document.getElementById(id).disabled = false; });
   }
+}
+
+function showConvertPanel() {
+  document.getElementById("app").style.display = "none";
+  document.getElementById("conv-name").value   = reqData.subject;
+
+  var d = new Date();
+  d.setDate(d.getDate() + 7);
+  document.getElementById("conv-due").value = d.toISOString().split("T")[0];
+
+  var sel = document.getElementById("conv-assignees");
+  sel.innerHTML = "";
+  Object.values(membersMap).forEach(function(m) {
+    if (m.role === "admin" || m.role === "manager") {
+      var opt       = document.createElement("option");
+      opt.value     = m.lineId;
+      opt.textContent = (m.role === "admin" ? "👑" : "🏷️") + " " + m.name + (m.dept ? "（" + m.dept + "）" : "");
+      sel.appendChild(opt);
+    }
+  });
+
+  document.getElementById("convertOverlay").style.display = "block";
+}
+
+async function convertToTask() {
+  var name    = document.getElementById("conv-name").value.trim() || reqData.subject;
+  var dueDate = document.getElementById("conv-due").value;
+  var reqdat  = document.getElementById("conv-reqdata").value.trim();
+
+  var sel = document.getElementById("conv-assignees");
+  var selIds = [], selNames = [];
+  for (var i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].selected) {
+      selIds.push(sel.options[i].value);
+      selNames.push(membersMap[sel.options[i].value] ? membersMap[sel.options[i].value].name : sel.options[i].value);
+    }
+  }
+
+  if (selIds.length === 0 || !dueDate) {
+    alert("請選擇至少一位負責人並填寫截止日期");
+    return;
+  }
+
+  var btn = document.getElementById("btnConvert");
+  btn.disabled    = true;
+  btn.textContent = "建立中…";
+
+  const p = new URLSearchParams({
+    action:        "createTask",
+    taskId:        "T-" + Date.now(),
+    projectName:   name,
+    description:   reqData.content || "",
+    dept:          "",
+    managerName:   selNames.join(","),
+    managerLineId: selIds.join(","),
+    requesterLineId: myId,
+    dueDate:       dueDate,
+    requiredData:  reqdat || "",
+  });
+
+  try {
+    const res  = await fetch(GAS + "?" + p.toString());
+    const data = await res.json();
+    if (data.status === "ok") {
+      document.getElementById("convertOverlay").style.display = "none";
+      showSuccess("✅", "請示已批准，任務已建立！", "已通知 " + selNames.join("、") + " 等 " + selIds.length + " 位負責人。");
+    } else {
+      throw new Error(data.error || "建立失敗");
+    }
+  } catch (e) {
+    alert("建立失敗：" + e.message);
+    btn.disabled    = false;
+    btn.textContent = "✅ 轉成任務並通知";
+  }
+}
+
+function skipConvert() {
+  document.getElementById("convertOverlay").style.display = "none";
+  showSuccess("✅", "已批准", "起單人已收到批准通知。");
 }
 
 function showSuccess(icon, title, desc) {

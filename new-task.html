@@ -97,6 +97,14 @@
     #success .icon { font-size: 52px; margin-bottom: 14px; }
     #success .msg  { font-size: 17px; font-weight: bold; color: #333; }
     #success .sub  { font-size: 14px; color: #888; margin-top: 8px; }
+
+    /* 提醒設定 */
+    .reminder-opts { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+    .reminder-item {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 14px; color: #333; cursor: pointer;
+    }
+    .reminder-item input[type="checkbox"] { width: 17px; height: 17px; cursor: pointer; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -151,6 +159,21 @@
     <div class="error-msg" id="err-rcpt">請至少選擇一位通知對象</div>
   </div>
 
+  <div class="card">
+    <label class="field-label">群組公告通知 <span style="font-size:11px;font-weight:normal;color:#999;">（選填，任務建立/完成時推播給指定群組）</span></label>
+    <div id="group-list"></div>
+  </div>
+
+  <div class="card">
+    <label class="field-label">提醒設定 <span style="font-size:11px;font-weight:normal;color:#999;">（系統依截止日自動提醒負責人）</span></label>
+    <div class="reminder-opts">
+      <label class="reminder-item"><input type="checkbox" id="rem-7"> 截止前 7 天提醒</label>
+      <label class="reminder-item"><input type="checkbox" id="rem-3" checked> 截止前 3 天提醒</label>
+      <label class="reminder-item"><input type="checkbox" id="rem-1"> 截止前 1 天提醒</label>
+      <label class="reminder-item"><input type="checkbox" id="rem-0" checked> 截止當天提醒</label>
+    </div>
+  </div>
+
   <button class="btn-submit" id="btn-submit" onclick="submitTask()">建立任務並通知</button>
 </div>
 
@@ -189,6 +212,12 @@
       document.getElementById("due-date").value = d.toISOString().split("T")[0];
 
       buildPicker(allMembers);
+
+      // Load groups
+      var gRes  = await fetch(GAS_URL + "?action=getGroups");
+      var gData = await gRes.json();
+      buildGroupPicker(gData.groups || []);
+
       show("form-wrap");
     } catch (err) {
       document.getElementById("loading").innerHTML =
@@ -348,6 +377,20 @@
     chk(mgrIds.length > 0,"err-rcpt");
     if (!valid) return;
 
+    // 收集提醒設定
+    var reminderDays = [];
+    if (document.getElementById("rem-7").checked) reminderDays.push(7);
+    if (document.getElementById("rem-3").checked) reminderDays.push(3);
+    if (document.getElementById("rem-1").checked) reminderDays.push(1);
+    if (document.getElementById("rem-0").checked) reminderDays.push(0);
+    var reminderSchedule = reminderDays.join(",") || "3,0";
+
+    // 收集群組通知
+    var groupIds = [];
+    document.querySelectorAll(".grp-cb:checked").forEach(function(cb) {
+      groupIds.push(cb.dataset.gid);
+    });
+
     var btn = document.getElementById("btn-submit");
     btn.disabled    = true;
     btn.textContent = "建立中…";
@@ -356,15 +399,17 @@
       var taskId = "T-" + Date.now();
       var url = GAS_URL
         + "?action=createTask"
-        + "&taskId="          + enc(taskId)
-        + "&projectName="     + enc(name)
-        + "&description="     + enc(desc)
-        + "&dept="            + enc(depts.join(","))
-        + "&managerName="     + enc(mgrNames.join(","))
-        + "&managerLineId="   + enc(mgrIds.join(","))
-        + "&requesterLineId=" + enc(userId)
-        + "&dueDate="         + enc(due)
-        + "&requiredData="    + enc(reqData);
+        + "&taskId="           + enc(taskId)
+        + "&projectName="      + enc(name)
+        + "&description="      + enc(desc)
+        + "&dept="             + enc(depts.join(","))
+        + "&managerName="      + enc(mgrNames.join(","))
+        + "&managerLineId="    + enc(mgrIds.join(","))
+        + "&requesterLineId="  + enc(userId)
+        + "&dueDate="          + enc(due)
+        + "&requiredData="     + enc(reqData)
+        + "&notifyGroupIds="   + enc(groupIds.join(","))
+        + "&reminderSchedule=" + enc(reminderSchedule);
 
       var res    = await fetch(url);
       var result = await res.json();
@@ -383,6 +428,23 @@
       btn.textContent = "建立任務並通知";
       alert("建立失敗：" + err.message);
     }
+  }
+
+  // ── 群組選擇器 ───────────────────────────────────────────────
+
+  function buildGroupPicker(groups) {
+    var container = document.getElementById("group-list");
+    if (!groups || groups.length === 0) {
+      container.innerHTML = '<div style="font-size:13px;color:#999;">（尚無群組登記，請先將 Bot 加入群組）</div>';
+      return;
+    }
+    groups.forEach(function(g) {
+      var row = el("label");
+      row.style.cssText = "display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer;font-size:14px;color:#333;";
+      row.innerHTML =
+        '<input type="checkbox" class="grp-cb" data-gid="' + esc(g.lineId) + '" style="width:17px;height:17px;">👥 ' + esc(g.name || g.lineId);
+      container.appendChild(row);
+    });
   }
 
   // ── 工具 ─────────────────────────────────────────────────

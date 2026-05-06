@@ -38,12 +38,12 @@
     .member-id { font-size: 11px; color: #aaa; font-family: monospace; margin-bottom: 12px; }
     .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .row label { font-size: 12px; color: #555; width: 36px; flex-shrink: 0; }
-    select {
+    select, .dept-input {
       flex: 1; padding: 9px 10px;
       border: 1.5px solid #ddd; border-radius: 8px;
       font-size: 14px; font-family: inherit; background: white;
     }
-    select:focus { outline: none; border-color: #1E3A5F; }
+    select:focus, .dept-input:focus { outline: none; border-color: #1E3A5F; }
     .btn-save {
       width: 100%; padding: 10px; background: #1E3A5F;
       color: white; border: none; border-radius: 8px;
@@ -80,12 +80,12 @@
   </div>
   <div class="count" id="count"></div>
   <input class="search-bar" type="text" id="search" placeholder="🔍 搜尋姓名或 UID…" oninput="filterCards()">
+  <datalist id="dept-options"></datalist>
   <div id="member-list"></div>
 </div>
 
 <script>
   var GAS_URL = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
-  var DEPTS   = ["","研發部","業務部","行銷部","倉儲部","生產部","採購部","財務部","人資部","資訊部","行政部"];
   var ROLES   = [
     { value: "admin",   label: "👑 管理員" },
     { value: "manager", label: "🏷️ 主管" },
@@ -121,6 +121,16 @@
     var res  = await fetch(GAS_URL + "?action=getMembers&userId=" + encodeURIComponent(userId));
     var data = await res.json();
     allMembers = data.members || [];
+
+    // 從現有成員動態建立部門提示清單
+    var seen = {}, depts = [];
+    allMembers.forEach(function(m) {
+      if (m.dept && !seen[m.dept]) { seen[m.dept] = true; depts.push(m.dept); }
+    });
+    depts.sort();
+    var dl = document.getElementById("dept-options");
+    if (dl) dl.innerHTML = depts.map(function(d) { return '<option value="' + escHtml(d) + '">'; }).join("");
+
     document.getElementById("count").textContent = "共 " + allMembers.length + " 位成員已加入好友";
     renderCards(allMembers);
   }
@@ -158,11 +168,8 @@
           }).join("") +
         '</select></div>' +
       '<div class="row"><label>部門</label>' +
-        '<select id="dept-' + m.lineId + '">' +
-          DEPTS.map(function(d) {
-            return '<option value="' + d + '"' + (m.dept === d ? " selected" : "") + '>' + (d ? escHtml(d) : "— 請選擇 —") + '</option>';
-          }).join("") +
-        '</select></div>' +
+        '<input type="text" class="dept-input" id="dept-' + m.lineId + '" list="dept-options" ' +
+          'value="' + escHtml(m.dept || '') + '" placeholder="部門名稱（可自行輸入）"></div>' +
       '<button class="btn-save" id="btn-' + m.lineId + '" onclick="saveMember(' + JSON.stringify(m.lineId) + ')">儲存</button>';
 
     return card;

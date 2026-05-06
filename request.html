@@ -103,6 +103,22 @@
       <div class="err" id="chainErr">請至少選擇一位簽核人</div>
     </div>
 
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <label style="margin:0;font-size:13px;font-weight:600;color:#555;">⏰ 自動催簽提醒</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:normal;font-size:13px;color:#555;">
+          <input type="checkbox" id="escalateEnabled" checked style="width:16px;height:16px;cursor:pointer;">
+          啟用
+        </label>
+      </div>
+      <div id="escalateDaysRow" style="display:flex;align-items:center;gap:8px;font-size:14px;color:#333;">
+        <span>若簽核人</span>
+        <input type="number" id="escalateDays" value="3" min="1" max="30"
+          style="width:56px;padding:6px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;text-align:center;">
+        <span>天未回應，自動發送催簽提醒</span>
+      </div>
+    </div>
+
     <button class="btn-submit" id="btnSubmit" onclick="submit()">📬 送出請示</button>
   </div>
 </div>
@@ -159,6 +175,12 @@ async function init() {
     }
 
     addLevel();  // 預設一關
+
+    // 催簽啟用/停用切換
+    document.getElementById("escalateEnabled").addEventListener("change", function() {
+      document.getElementById("escalateDaysRow").style.opacity = this.checked ? "1" : "0.4";
+    });
+
     document.getElementById("loading").style.display = "none";
     document.getElementById("app").style.display     = "block";
   } catch (e) {
@@ -244,6 +266,11 @@ async function submit() {
   btn.disabled    = true;
   btn.textContent = "送出中…";
 
+  const escalateEnabled = document.getElementById("escalateEnabled").checked;
+  const escalateDays    = escalateEnabled
+    ? (parseInt(document.getElementById("escalateDays").value) || 3)
+    : 0;
+
   const p = new URLSearchParams({
     action:        "createRequest",
     userId:        myId,
@@ -252,6 +279,7 @@ async function submit() {
     approverNames: names.join(","),
     subject:       subject,
     content:       content,
+    escalateDays:  escalateDays,
   });
 
   try {
