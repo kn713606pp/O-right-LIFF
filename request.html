@@ -146,7 +146,15 @@ async function init() {
 
     if (approverOptions.length === 0) {
       document.getElementById("loading").innerHTML =
-        "<p style='padding:40px;text-align:center;color:#C62828;'>⚠️ 成員名單中尚無主管，請先由管理員設定成員角色。</p>";
+        "<div style='padding:32px 20px;text-align:center;'>"
+        + "<p style='font-size:32px;'>⚠️</p>"
+        + "<p style='color:#C62828;font-weight:700;font-size:16px;margin-top:12px;'>成員名單中尚無可選的簽核人</p>"
+        + "<p style='color:#555;font-size:13px;margin-top:10px;line-height:1.8;'>"
+        + "請簽核人先在 LINE Bot 傳送「登記」完成登記，<br>"
+        + "再由管理員到「成員名單」工作表<br>將簽核人的角色設為 <strong>manager</strong> 或 <strong>admin</strong>。</p>"
+        + "<p style='color:#888;font-size:12px;margin-top:16px;'>"
+        + "或在 LINE Bot 傳：<br><strong>設定角色 [UID] manager [部門名稱]</strong></p>"
+        + "</div>";
       return;
     }
 
