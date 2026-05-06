@@ -198,9 +198,16 @@
       if (!liff.isLoggedIn()) { liff.login(); return; }
       userId = liff.getContext().userId;
 
-      // 任何人都可以建立任務，直接取成員清單（無需管理員）
-      var mRes  = await fetch(GAS_URL + "?action=getMembersList");
-      var mData = await mRes.json();
+      // 取成員清單
+      var mRes, mData;
+      try {
+        mRes  = await fetch(GAS_URL + "?action=getMembersList");
+        mData = await mRes.json();
+      } catch (fetchErr) {
+        throw new Error("無法連線伺服器，請確認網路後重試。\n（" + fetchErr.message + "）");
+      }
+      if (mData.error) throw new Error("伺服器錯誤：" + mData.error);
+
       allMembers = mData.members || [];
       if (allMembers.length === 0) {
         document.getElementById("loading").innerHTML =
@@ -213,15 +220,23 @@
 
       buildPicker(allMembers);
 
-      // Load groups
-      var gRes  = await fetch(GAS_URL + "?action=getGroups");
-      var gData = await gRes.json();
-      buildGroupPicker(gData.groups || []);
+      // Load groups（失敗不阻擋主流程）
+      try {
+        var gRes  = await fetch(GAS_URL + "?action=getGroups");
+        var gData = await gRes.json();
+        buildGroupPicker(gData.groups || []);
+      } catch (gErr) {
+        buildGroupPicker([]);
+      }
 
       show("form-wrap");
     } catch (err) {
       document.getElementById("loading").innerHTML =
-        "<div style='color:#C62828;padding:20px;text-align:center'>載入失敗：" + esc(err.message) + "</div>";
+        "<div style='color:#C62828;padding:20px;text-align:center'>"
+        + "⚠️ 載入失敗<br><br>"
+        + "<span style='font-size:13px;color:#555;'>" + esc(err.message) + "</span><br><br>"
+        + "<span style='font-size:12px;color:#aaa;'>請關閉後重新開啟，或聯繫管理員</span>"
+        + "</div>";
     }
   }
 
