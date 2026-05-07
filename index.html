@@ -146,6 +146,29 @@
     <input type="text" id="note" placeholder="如有補充說明請填寫">
   </div>
 
+  <!-- 協助請求（選填） -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <label style="margin:0;">🤝 需要其他部門協助</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:normal;font-size:13px;color:#555;">
+        <input type="checkbox" id="helpEnabled" style="width:16px;height:16px;cursor:pointer;accent-color:#1E3A5F;">
+        需要協助
+      </label>
+    </div>
+    <div id="helpForm" style="display:none;margin-top:10px;">
+      <div style="margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:bold;color:#555;margin-bottom:5px;">希望哪個部門協助</div>
+        <select id="helpDept" style="width:100%;padding:9px 12px;border:1.5px solid #DDD;border-radius:8px;font-size:14px;background:white;font-family:inherit;">
+          <option value="">— 選擇部門 —</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:bold;color:#555;margin-bottom:5px;">需要什麼協助</div>
+        <textarea id="helpDesc" rows="2" placeholder="說明需要協助的具體事項（例：需要 IT 協助資料整合）…"></textarea>
+      </div>
+    </div>
+  </div>
+
   <button class="btn-submit" id="btn-submit" onclick="submitForm()">確認送出</button>
 </div>
 
@@ -190,6 +213,23 @@
       }
 
       renderTask(taskData);
+
+      // 載入部門清單供協助請求使用
+      try {
+        var mRes  = await fetch(GAS_URL + "?action=getMembersList");
+        var mData = await mRes.json();
+        var depts = {};
+        (mData.members || []).forEach(function(m) { if (m.dept) depts[m.dept] = true; });
+        var sel = document.getElementById("helpDept");
+        Object.keys(depts).sort().forEach(function(d) {
+          var o = document.createElement("option"); o.value = d; o.textContent = d; sel.appendChild(o);
+        });
+      } catch(eD) {}
+
+      document.getElementById("helpEnabled").addEventListener("change", function() {
+        document.getElementById("helpForm").style.display = this.checked ? "block" : "none";
+      });
+
       document.getElementById("loading").style.display       = "none";
       document.getElementById("form-content").style.display  = "block";
 
@@ -227,12 +267,18 @@
     btn.textContent = "送出中…";
 
     try {
+      var helpEnabled = document.getElementById("helpEnabled").checked;
+      var helpDept = helpEnabled ? document.getElementById("helpDept").value : "";
+      var helpDesc = helpEnabled ? document.getElementById("helpDesc").value.trim() : "";
+
       var url = GAS_URL
         + "?action=submitResponse"
-        + "&taskId=" + encodeURIComponent(taskId)
-        + "&userId=" + encodeURIComponent(userId)
-        + "&data="   + encodeURIComponent(data)
-        + "&note="   + encodeURIComponent(note);
+        + "&taskId="   + encodeURIComponent(taskId)
+        + "&userId="   + encodeURIComponent(userId)
+        + "&data="     + encodeURIComponent(data)
+        + "&note="     + encodeURIComponent(note)
+        + (helpDept ? "&helpDept=" + encodeURIComponent(helpDept) : "")
+        + (helpDesc ? "&helpDesc=" + encodeURIComponent(helpDesc) : "");
       var res    = await fetch(url);
       var result = await res.json();
 

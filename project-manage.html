@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>專案管理 — 歐萊德小管家</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "Noto Sans TC", sans-serif;
+      background: #F0F4F8; min-height: 100vh; padding: 20px 16px 80px;
+    }
+    .header {
+      background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%);
+      color: white; padding: 18px; border-radius: 12px; margin-bottom: 16px;
+    }
+    .header .label    { font-size: 12px; opacity: 0.75; margin-bottom: 4px; }
+    .header .title    { font-size: 19px; font-weight: bold; }
+    .header .subtitle { font-size: 13px; opacity: 0.85; margin-top: 5px; }
+    .card {
+      background: white; border-radius: 12px; padding: 16px;
+      margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .progress-bar-bg {
+      height: 8px; background: #E8F5E9; border-radius: 4px; overflow: hidden; margin-top: 8px;
+    }
+    .progress-bar { height: 100%; background: #2E7D32; border-radius: 4px; transition: width 0.4s; }
+    .task-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid #F0F0F0; font-size: 14px;
+    }
+    .task-row:last-child { border-bottom: none; }
+    .task-dept { font-weight: bold; color: #333; flex: 1; }
+    .task-mgr  { font-size: 12px; color: #888; margin-top: 2px; }
+    .status-badge {
+      font-size: 11px; font-weight: bold; padding: 3px 9px; border-radius: 10px;
+      white-space: nowrap; flex-shrink: 0; margin-left: 8px;
+    }
+    .s-done    { background: #E8F5E9; color: #2E7D32; }
+    .s-overdue { background: #FFEBEE; color: #C62828; }
+    .s-prog    { background: #E3F2FD; color: #1565C0; }
+    .s-pending { background: #F5F5F5; color: #757575; }
+    .s-hold    { background: #FFF8E1; color: #F57F17; }
+    .s-closed  { background: #EDE7F6; color: #4527A0; }
+    .response-preview {
+      font-size: 12px; color: #555; background: #F8FBFF; border-radius: 6px;
+      padding: 6px 10px; margin-top: 6px; white-space: pre-wrap; line-height: 1.5;
+    }
+
+    /* Action buttons */
+    .action-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;
+    }
+    .btn-action {
+      padding: 14px 10px; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: bold; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .btn-action .icon { font-size: 22px; }
+    .btn-action .label { font-size: 12px; }
+    .btn-close  { background: #E8F5E9; color: #2E7D32; }
+    .btn-hold   { background: #FFF8E1; color: #E65100; }
+    .btn-extend { background: #E3F2FD; color: #1565C0; grid-column: span 2; }
+    .btn-action:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Confirm panel */
+    .confirm-panel {
+      display: none; background: #FFFDE7; border: 1.5px solid #FFD54F;
+      border-radius: 10px; padding: 14px; margin-bottom: 12px;
+    }
+    .confirm-panel.show { display: block; }
+    .confirm-title { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 8px; }
+    .confirm-msg   { font-size: 13px; color: #555; margin-bottom: 14px; line-height: 1.6; }
+    .confirm-btns  { display: flex; gap: 8px; }
+    .btn-yes {
+      flex: 1; padding: 11px; border: none; border-radius: 8px;
+      font-size: 14px; font-weight: bold; cursor: pointer; color: white;
+    }
+    .btn-no {
+      flex: 1; padding: 11px; border: 1.5px solid #CCC; border-radius: 8px;
+      font-size: 14px; font-weight: bold; cursor: pointer;
+      background: white; color: #555;
+    }
+    .date-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .date-row label { font-size: 13px; color: #555; white-space: nowrap; }
+    input[type="date"] {
+      flex: 1; padding: 9px 12px; border: 1.5px solid #DDD;
+      border-radius: 8px; font-size: 14px; font-family: inherit;
+    }
+    input[type="date"]:focus { outline: none; border-color: #1565C0; }
+
+    #loading  { text-align: center; padding: 60px 20px; color: #999; }
+    #no-perm  { display: none; text-align: center; padding: 60px 20px; color: #C62828; }
+    #form-wrap{ display: none; }
+    #success  { display: none; text-align: center; padding: 50px 20px; }
+    #success .icon { font-size: 56px; margin-bottom: 16px; }
+    #success .msg  { font-size: 18px; font-weight: bold; color: #1B5E20; margin-bottom: 8px; }
+    #success .sub  { font-size: 14px; color: #666; line-height: 1.8; }
+  </style>
+</head>
+<body>
+
+<div id="loading">載入中…</div>
+<div id="no-perm">
+  <div style="font-size:44px">⛔</div>
+  <div style="margin-top:14px;font-size:16px;font-weight:bold;color:#C62828">您沒有專案管理權限</div>
+  <div style="margin-top:8px;font-size:13px;color:#888">只有管理員可使用此功能</div>
+</div>
+
+<div id="form-wrap">
+  <div class="header">
+    <div class="label">歐萊德小管家 — 管理功能</div>
+    <div class="title">📁 跨部門專案管理</div>
+    <div class="subtitle" id="project-name-sub">載入中…</div>
+  </div>
+
+  <!-- 進度概覽 -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <span style="font-size:13px;font-weight:bold;color:#1B5E20;">整體完成進度</span>
+      <span id="progress-text" style="font-size:13px;font-weight:bold;color:#1B5E20;">0 / 0</span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- 任務清單 -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:bold;color:#333;margin-bottom:10px;">各部門任務狀態</div>
+    <div id="task-list"></div>
+  </div>
+
+  <!-- 確認操作面板 -->
+  <div class="confirm-panel" id="confirm-panel">
+    <div class="confirm-title" id="confirm-title"></div>
+    <div class="confirm-msg"  id="confirm-msg"></div>
+    <!-- 展延用日期選擇器 -->
+    <div id="date-row" class="date-row" style="display:none;">
+      <label>新截止日期</label>
+      <input type="date" id="new-due-date">
+    </div>
+    <div class="confirm-btns">
+      <button class="btn-yes" id="btn-confirm-yes" onclick="confirmAction()">確認執行</button>
+      <button class="btn-no"  onclick="hideConfirm()">取消</button>
+    </div>
+  </div>
+
+  <!-- 操作按鈕 -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:bold;color:#333;margin-bottom:12px;">專案操作</div>
+    <div class="action-grid">
+      <button class="btn-action btn-close"  id="btn-close"  onclick="showConfirm('close')">
+        <span class="icon">✅</span>
+        <span class="label">結案</span>
+      </button>
+      <button class="btn-action btn-hold"   id="btn-hold"   onclick="showConfirm('hold')">
+        <span class="icon">⏸</span>
+        <span class="label">暫緩</span>
+      </button>
+      <button class="btn-action btn-extend" id="btn-extend" onclick="showConfirm('extend')">
+        <span class="icon">⏰</span>
+        <span class="label">展延截止日期（所有未完成任務）</span>
+      </button>
+    </div>
+    <div style="font-size:11px;color:#AAA;margin-top:6px;line-height:1.7;">
+      ✅ 結案：標記所有未完成任務為「已結案」，通知各部門<br>
+      ⏸ 暫緩：標記為「暫緩」，停止催辦提醒，通知各部門<br>
+      ⏰ 展延：統一更新截止日期，逾期任務自動改為「進行中」
+    </div>
+  </div>
+</div>
+
+<div id="success">
+  <div class="icon" id="succ-icon">✅</div>
+  <div class="msg"  id="succ-msg">操作完成</div>
+  <div class="sub"  id="succ-sub"></div>
+</div>
+
+<script>
+  var GAS_URL   = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
+  var userId, projectId, projectData;
+  var pendingType = "";
+
+  var STATUS_MAP = {
+    "已完成": { cls: "s-done",    label: "✅ 已完成" },
+    "逾期":   { cls: "s-overdue", label: "🔴 逾期" },
+    "進行中": { cls: "s-prog",    label: "⏳ 進行中" },
+    "待辦":   { cls: "s-pending", label: "📋 待辦" },
+    "暫緩":   { cls: "s-hold",    label: "⏸ 暫緩" },
+    "已結案": { cls: "s-closed",  label: "🔒 已結案" },
+    "已撤銷": { cls: "s-closed",  label: "🗑 已撤銷" },
+  };
+
+  // ── 初始化 ────────────────────────────────────────────────────
+  async function init() {
+    try {
+      await liff.init({ liffId: "2009974832-1tuzOcJQ" });
+      if (!liff.isLoggedIn()) { liff.login(); return; }
+      userId    = liff.getContext().userId;
+      projectId = new URLSearchParams(location.search).get("projectId") || "";
+
+      if (!projectId) { showErr("缺少專案 ID，請重新點擊 LINE 訊息中的按鈕。"); return; }
+
+      var roleRes  = await fetch(GAS_URL + "?action=checkRole&userId=" + enc(userId));
+      var roleData = await roleRes.json();
+      if (roleData.role !== "admin") { show("no-perm"); return; }
+
+      var res  = await fetch(GAS_URL + "?action=getProjectSummary&userId=" + enc(userId) + "&projectId=" + enc(projectId));
+      projectData = await res.json();
+      if (projectData.error) { showErr(projectData.error); return; }
+
+      renderProject(projectData);
+      show("form-wrap");
+    } catch(err) {
+      showErr("載入失敗：" + err.message);
+    }
+  }
+
+  // ── 渲染 ──────────────────────────────────────────────────────
+  function renderProject(data) {
+    document.getElementById("project-name-sub").textContent = data.projectName || "—";
+
+    var tasks  = data.tasks || [];
+    var done   = tasks.filter(function(t) { return t.status === "已完成"; }).length;
+    var total  = tasks.length;
+    var pct    = total ? Math.round(done / total * 100) : 0;
+    document.getElementById("progress-text").textContent = done + " / " + total + " 個部門";
+    document.getElementById("progress-bar").style.width  = pct + "%";
+
+    var list = document.getElementById("task-list");
+    list.innerHTML = "";
+    tasks.forEach(function(t) {
+      var sm = STATUS_MAP[t.status] || { cls: "s-pending", label: t.status };
+      var row = document.createElement("div");
+      row.className = "task-row";
+      row.innerHTML =
+        '<div style="flex:1;min-width:0;">' +
+          '<div class="task-dept">' + esc(t.dept || "—") + '</div>' +
+          '<div class="task-mgr">' + esc(t.managerName || "—") + "　截止：" + esc(t.dueDate || "—") + '</div>' +
+          (t.responseData
+            ? '<div class="response-preview">' + esc(t.responseData.substring(0, 120)) + (t.responseData.length > 120 ? "…" : "") + '</div>'
+            : '') +
+        '</div>' +
+        '<span class="status-badge ' + sm.cls + '">' + sm.label + '</span>';
+      list.appendChild(row);
+    });
+
+    // 若已全結案則禁用結案/暫緩按鈕
+    var allDone = tasks.every(function(t) {
+      return t.status === "已完成" || t.status === "已撤銷" || t.status === "已結案";
+    });
+    if (allDone) {
+      document.getElementById("btn-close").disabled = true;
+      document.getElementById("btn-hold").disabled  = true;
+    }
+
+    // 預設展延日期為 14 天後
+    var d14 = new Date(); d14.setDate(d14.getDate() + 14);
+    document.getElementById("new-due-date").value = d14.toISOString().split("T")[0];
+  }
+
+  // ── 操作確認 ─────────────────────────────────────────────────
+  var CONFIRM_CFG = {
+    close: {
+      title: "✅ 確認結案",
+      msg:   "將把所有未完成任務標記為「已結案」，並通知各部門負責人。\n\n此操作無法自動復原，請確認後執行。",
+      yesColor: "#2E7D32",
+      yesLabel: "確認結案",
+    },
+    hold: {
+      title: "⏸ 確認暫緩",
+      msg:   "將把所有未完成任務標記為「暫緩」，停止自動催辦提醒，並通知各部門負責人。\n\n暫緩後可再次展延恢復進行中狀態。",
+      yesColor: "#E65100",
+      yesLabel: "確認暫緩",
+    },
+    extend: {
+      title: "⏰ 展延截止日期",
+      msg:   "將把所有未完成任務的截止日期統一更新為以下日期，逾期/暫緩任務自動改為「進行中」，並通知各部門負責人。",
+      yesColor: "#1565C0",
+      yesLabel: "確認展延",
+    },
+  };
+
+  function showConfirm(type) {
+    pendingType = type;
+    var cfg = CONFIRM_CFG[type];
+    document.getElementById("confirm-title").textContent = cfg.title;
+    document.getElementById("confirm-msg").textContent   = cfg.msg;
+    document.getElementById("btn-confirm-yes").style.background = cfg.yesColor;
+    document.getElementById("btn-confirm-yes").textContent      = cfg.yesLabel;
+    document.getElementById("date-row").style.display = (type === "extend") ? "flex" : "none";
+    document.getElementById("confirm-panel").classList.add("show");
+    document.getElementById("confirm-panel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function hideConfirm() {
+    pendingType = "";
+    document.getElementById("confirm-panel").classList.remove("show");
+  }
+
+  async function confirmAction() {
+    if (!pendingType) return;
+    var type = pendingType;
+    var newDue = type === "extend" ? document.getElementById("new-due-date").value : "";
+    if (type === "extend" && !newDue) { alert("請選擇新截止日期"); return; }
+
+    var btn = document.getElementById("btn-confirm-yes");
+    btn.disabled = true;
+    btn.textContent = "執行中…";
+
+    try {
+      var url = GAS_URL
+        + "?action=projectAction"
+        + "&userId="    + enc(userId)
+        + "&projectId=" + enc(projectId)
+        + "&type="      + enc(type)
+        + (newDue ? "&newDueDate=" + enc(newDue) : "");
+
+      var res    = await fetch(url);
+      var result = await res.json();
+      if (result.status === "ok") {
+        var icons  = { close: "✅", hold: "⏸", extend: "⏰" };
+        var msgs   = {
+          close:  "專案已結案，各部門負責人均已收到通知。",
+          hold:   "專案已暫緩，系統停止催辦，各部門負責人均已收到通知。",
+          extend: "截止日期已展延至 " + newDue + "，各部門負責人均已收到通知。",
+        };
+        document.getElementById("succ-icon").textContent = icons[type];
+        document.getElementById("succ-msg").textContent  = { close: "結案完成！", hold: "暫緩完成！", extend: "展延完成！" }[type];
+        document.getElementById("succ-sub").textContent  = msgs[type] + "\n\n" + (result.projectName || "");
+        hide("form-wrap");
+        show("success");
+        setTimeout(function() { if (liff.isInClient()) liff.closeWindow(); }, 4000);
+      } else {
+        throw new Error(result.error || "操作失敗");
+      }
+    } catch(err) {
+      btn.disabled    = false;
+      btn.textContent = CONFIRM_CFG[type].yesLabel;
+      alert("操作失敗：" + err.message);
+    }
+  }
+
+  // ── 工具 ─────────────────────────────────────────────────────
+  function show(id) {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById(id).style.display = "block";
+  }
+  function hide(id) { document.getElementById(id).style.display = "none"; }
+  function enc(s)   { return encodeURIComponent(s); }
+  function esc(s)   {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function showErr(msg) {
+    document.getElementById("loading").innerHTML =
+      "<div style='color:#C62828;font-size:15px;padding:20px;text-align:center;'>" + msg + "</div>";
+  }
+
+  init();
+</script>
+</body>
+</html>
