@@ -53,13 +53,24 @@
     }
     .btn-add-level:hover { background: #f3e5f5; }
 
-    .file-area {
-      border: 1.5px dashed #aaa; border-radius: 8px; padding: 16px;
-      text-align: center; cursor: pointer; font-size: 13px; color: #888;
-      background: #fafafa; transition: background 0.15s;
+    .btn-add-file {
+      width: 100%; padding: 12px; border: 1.5px dashed #aaa; border-radius: 8px;
+      background: #fafafa; color: #555; font-size: 13px; font-weight: 600;
+      cursor: pointer; text-align: center;
     }
-    .file-area:active { background: #f0f0f0; }
-    .file-selected { border-color: #4A235A !important; color: #4A235A !important; background: #f9f0ff !important; }
+    .btn-add-file:active { background: #f0f0f0; }
+    .file-list { margin-top: 8px; }
+    .file-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; background: #f9f0ff; border-radius: 6px;
+      margin-bottom: 6px; font-size: 13px; color: #333;
+      border: 1px solid #e0c8f0;
+    }
+    .file-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-del {
+      background: none; border: none; color: #999; font-size: 18px;
+      cursor: pointer; padding: 0 2px; flex-shrink: 0; line-height: 1;
+    }
 
     .flow-preview {
       margin-top: 10px; padding: 10px 12px; background: #f3e5f5;
@@ -105,11 +116,15 @@
 
     <div class="card">
       <label>📎 附件（選填）</label>
-      <div class="file-area" id="fileArea" onclick="document.getElementById('attachFile').click()">
-        <div id="fileLabel">點擊選取檔案（圖片、PDF、Word 等，最大 20 MB）</div>
-      </div>
-      <input type="file" id="attachFile" style="display:none" multiple
+      <button type="button" class="btn-add-file" onclick="document.getElementById('attachFile').click()">
+        ＋ 新增附件（每次選一個，可重複點擊加入多個）
+      </button>
+      <input type="file" id="attachFile" style="display:none"
         accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip">
+      <div class="file-list" id="fileList"></div>
+      <div id="fileSizeWarn" style="color:#C62828;font-size:12px;margin-top:4px;display:none">
+        ⚠️ 檔案總大小超過 20 MB，請移除部分檔案
+      </div>
     </div>
 
     <div class="card">
@@ -160,6 +175,7 @@ const GAS = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4
 let myId = "", myName = "";
 let membersMap = {};   // lineId → member
 let approverOptions = [];  // [{value, label}] managers+admins only
+let pendingFiles = [];  // 累積選取的附件
 
 async function init() {
   await liff.init({ liffId: "2009974832-1tuzOcJQ" });
@@ -209,27 +225,12 @@ async function init() {
       document.getElementById("escalateDaysRow").style.opacity = this.checked ? "1" : "0.4";
     });
 
-    // 附件選取預覽
+    // 附件逐一加入
     document.getElementById("attachFile").addEventListener("change", function() {
-      const area  = document.getElementById("fileArea");
-      const label = document.getElementById("fileLabel");
-      if (this.files.length > 0) {
-        const totalSize = Array.from(this.files).reduce((s, f) => s + f.size, 0);
-        if (totalSize > 20 * 1024 * 1024) {
-          alert("檔案總大小超過 20 MB 限制，請減少檔案或選擇較小的檔案。");
-          this.value = "";
-          area.classList.remove("file-selected");
-          label.textContent = "點擊選取檔案（圖片、PDF、Word 等，最大 20 MB）";
-          return;
-        }
-        label.textContent = this.files.length === 1
-          ? "📎 " + this.files[0].name + "（" + (totalSize / 1024).toFixed(0) + " KB）"
-          : "📎 " + this.files.length + " 個檔案（共 " + (totalSize / 1024).toFixed(0) + " KB）";
-        area.classList.add("file-selected");
-      } else {
-        label.textContent = "點擊選取檔案（圖片、PDF、Word 等，最大 20 MB）";
-        area.classList.remove("file-selected");
-      }
+      if (!this.files.length) return;
+      pendingFiles.push(this.files[0]);
+      this.value = "";  // 重置，讓同一檔案可再次選取
+      renderFileList();
     });
 
     document.getElementById("loading").style.display = "none";
@@ -346,9 +347,8 @@ async function submit() {
       document.getElementById("successScreen").style.display = "block";
       document.getElementById("succSubject").textContent = subject;
       document.getElementById("succChain").textContent   = "簽核鏈：" + names.join(" → ");
-      const fileInput = document.getElementById("attachFile");
-      if (fileInput.files.length > 0 && requestId) {
-        uploadAttachment(Array.from(fileInput.files), requestId);
+      if (pendingFiles.length > 0 && requestId) {
+        uploadAttachment(pendingFiles.slice(), requestId);
       }
     } else {
       alert("送出失敗：" + (data.error || "未知錯誤"));
@@ -358,6 +358,29 @@ async function submit() {
     alert("網路錯誤，請稍後再試");
     btn.disabled = false; btn.textContent = "📬 送出請示";
   }
+}
+
+function renderFileList() {
+  const list    = document.getElementById("fileList");
+  const warnEl  = document.getElementById("fileSizeWarn");
+  list.innerHTML = "";
+  const totalSize = pendingFiles.reduce((s, f) => s + f.size, 0);
+  pendingFiles.forEach((f, idx) => {
+    const item = document.createElement("div");
+    item.className = "file-item";
+    const nameEl = document.createElement("span");
+    nameEl.className   = "file-item-name";
+    nameEl.textContent = "📎 " + f.name + "（" + (f.size / 1024).toFixed(0) + " KB）";
+    const delBtn = document.createElement("button");
+    delBtn.type      = "button";
+    delBtn.className = "file-del";
+    delBtn.textContent = "×";
+    delBtn.onclick   = () => { pendingFiles.splice(idx, 1); renderFileList(); };
+    item.appendChild(nameEl);
+    item.appendChild(delBtn);
+    list.appendChild(item);
+  });
+  warnEl.style.display = totalSize > 20 * 1024 * 1024 ? "block" : "none";
 }
 
 async function uploadAttachment(files, requestId) {

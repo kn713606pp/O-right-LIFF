@@ -105,6 +105,26 @@
       font-size: 14px; color: #333; cursor: pointer;
     }
     .reminder-item input[type="checkbox"] { width: 17px; height: 17px; cursor: pointer; flex-shrink: 0; }
+
+    /* 附件 */
+    .btn-add-file {
+      width: 100%; padding: 12px; border: 1.5px dashed #AAA; border-radius: 8px;
+      background: #FAFAFA; color: #555; font-size: 14px; font-weight: bold;
+      cursor: pointer; text-align: center;
+    }
+    .btn-add-file:active { background: #F0F0F0; }
+    .file-list { margin-top: 8px; }
+    .file-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; background: #EFF4F8; border-radius: 6px;
+      margin-bottom: 6px; font-size: 13px; color: #333;
+      border: 1px solid #C8D9EA;
+    }
+    .file-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-del {
+      background: none; border: none; color: #999; font-size: 18px;
+      cursor: pointer; padding: 0 2px; flex-shrink: 0; line-height: 1;
+    }
   </style>
 </head>
 <body>
@@ -187,6 +207,19 @@
     </div>
   </div>
 
+  <div class="card">
+    <label class="field-label">📎 附件（選填）<span style="font-size:11px;font-weight:normal;color:#999;"> 任務相關說明文件</span></label>
+    <button type="button" class="btn-add-file" onclick="document.getElementById('taskAttachFile').click()">
+      ＋ 新增附件（每次選一個，可重複點擊加入多個）
+    </button>
+    <input type="file" id="taskAttachFile" style="display:none"
+      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip">
+    <div class="file-list" id="taskFileList"></div>
+    <div id="taskFileSizeWarn" style="color:#C62828;font-size:12px;margin-top:4px;display:none">
+      ⚠️ 檔案總大小超過 20 MB，請移除部分檔案
+    </div>
+  </div>
+
   <button class="btn-submit" id="btn-submit" onclick="submitTask()">建立任務並通知</button>
 </div>
 
@@ -202,6 +235,7 @@
   var allMembers  = [];
   var grouped     = {};   // dept -> [member]
   var deptOrder   = [];
+  var pendingFiles = [];  // 累積選取的附件
 
   // ── 初始化 ────────────────────────────────────────────────
 
@@ -263,6 +297,13 @@
         var grpCb = document.querySelector('.grp-cb[data-gid="' + prefillGroupId + '"]');
         if (grpCb) grpCb.checked = true;
       }
+
+      document.getElementById("taskAttachFile").addEventListener("change", function() {
+        if (!this.files.length) return;
+        pendingFiles.push(this.files[0]);
+        this.value = "";
+        renderTaskFileList();
+      });
 
       show("form-wrap");
     } catch (err) {
@@ -472,11 +513,16 @@
       var result = await res.json();
 
       if (result.status === "ok") {
-        document.getElementById("succ-sub").textContent =
-          "已通知 " + mgrNames.join("、") + " 等 " + mgrIds.length + " 位人員。";
         hide("form-wrap");
         show("success");
-        setTimeout(function() { liff.closeWindow(); }, 3000);
+        var succMsg = "已通知 " + mgrNames.join("、") + " 等 " + mgrIds.length + " 位人員。";
+        document.getElementById("succ-sub").textContent = succMsg;
+
+        if (pendingFiles.length > 0) {
+          uploadTaskAttachments(pendingFiles.slice(), taskId);
+        } else {
+          setTimeout(function() { liff.closeWindow(); }, 3000);
+        }
       } else {
         throw new Error(result.error || "建立失敗");
       }
@@ -485,6 +531,65 @@
       btn.textContent = "建立任務並通知";
       alert("建立失敗：" + err.message);
     }
+  }
+
+  // ── 附件 ─────────────────────────────────────────────────────
+
+  function renderTaskFileList() {
+    var list    = document.getElementById("taskFileList");
+    var warnEl  = document.getElementById("taskFileSizeWarn");
+    list.innerHTML = "";
+    var totalSize = pendingFiles.reduce(function(s, f) { return s + f.size; }, 0);
+    pendingFiles.forEach(function(f, idx) {
+      var item    = el("div", "file-item");
+      var nameEl  = el("span", "file-item-name");
+      nameEl.textContent = "📎 " + f.name + "（" + (f.size / 1024).toFixed(0) + " KB）";
+      var delBtn  = el("button", "file-del");
+      delBtn.type        = "button";
+      delBtn.textContent = "×";
+      delBtn.onclick     = function() { pendingFiles.splice(idx, 1); renderTaskFileList(); };
+      item.appendChild(nameEl);
+      item.appendChild(delBtn);
+      list.appendChild(item);
+    });
+    warnEl.style.display = totalSize > 20 * 1024 * 1024 ? "block" : "none";
+  }
+
+  async function uploadTaskAttachments(files, taskId) {
+    var succEl = document.getElementById("succ-sub");
+    succEl.textContent += "\n⏳ 附件上傳中（0 / " + files.length + "）…";
+    var ok = 0, fail = 0;
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      succEl.textContent = "⏳ 附件上傳中（" + (i + 1) + " / " + files.length + "）：" + f.name;
+      try {
+        var base64 = await new Promise(function(resolve, reject) {
+          var reader = new FileReader();
+          reader.onload  = function(e) { resolve(e.target.result.split(",")[1]); };
+          reader.onerror = reject;
+          reader.readAsDataURL(f);
+        });
+        var res  = await fetch(GAS_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action:     "uploadFile",
+            requestId:  taskId,
+            userId:     userId,
+            fileName:   f.name,
+            mimeType:   f.type || "application/octet-stream",
+            fileBase64: base64,
+          }),
+        });
+        var data = await res.json();
+        if (data.status === "ok") { ok++; } else { throw new Error(data.error || "失敗"); }
+      } catch (e) { fail++; }
+    }
+    if (fail === 0) {
+      succEl.textContent = "✅ " + ok + " 個附件已上傳並關聯至任務。";
+    } else {
+      succEl.textContent = "⚠️ " + ok + " 個成功，" + fail + " 個失敗。可稍後再試。";
+    }
+    setTimeout(function() { liff.closeWindow(); }, 3000);
   }
 
   // ── 群組選擇器 ───────────────────────────────────────────────
