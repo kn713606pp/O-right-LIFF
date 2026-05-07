@@ -52,6 +52,15 @@
       cursor: pointer; margin-top: 4px;
     }
     .btn-add-level:hover { background: #f3e5f5; }
+
+    .file-area {
+      border: 1.5px dashed #aaa; border-radius: 8px; padding: 16px;
+      text-align: center; cursor: pointer; font-size: 13px; color: #888;
+      background: #fafafa; transition: background 0.15s;
+    }
+    .file-area:active { background: #f0f0f0; }
+    .file-selected { border-color: #4A235A !important; color: #4A235A !important; background: #f9f0ff !important; }
+
     .flow-preview {
       margin-top: 10px; padding: 10px 12px; background: #f3e5f5;
       border-radius: 8px; font-size: 12px; color: #4A235A;
@@ -94,13 +103,13 @@
       <textarea id="content" placeholder="詳細說明背景、需求、預期結果、金額/數量等（建議填寫，作為各關決策依據）"></textarea>
     </div>
 
-    <div class="card" style="background:#fffde7;border:1.5px solid #FFD54F;">
-      <div style="font-size:13px;font-weight:700;color:#F57F17;margin-bottom:8px;">📎 如需附件</div>
-      <div style="font-size:13px;color:#555;line-height:1.9;">
-        ① 先將圖片或檔案直接傳給 Bot<br>
-        ② Bot 回傳 Google Drive 連結後，將連結貼入上方「請示內容說明」<br>
-        ③ 或送出請示後，傳「<strong>關聯 R-xxx</strong>」自動關聯附件
+    <div class="card">
+      <label>📎 附件（選填）</label>
+      <div class="file-area" id="fileArea" onclick="document.getElementById('attachFile').click()">
+        <div id="fileLabel">點擊選取檔案（圖片、PDF、Word 等，最大 10 MB）</div>
       </div>
+      <input type="file" id="attachFile" style="display:none"
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip">
     </div>
 
     <div class="card">
@@ -139,6 +148,8 @@
       <h2>請示已送出！</h2>
       <p id="succSubject" style="font-weight:600;font-size:16px;"></p>
       <p class="chain-flow" id="succChain"></p>
+      <div id="uploadStatus" style="display:none;margin-top:14px;padding:12px 14px;
+        border-radius:8px;font-size:13px;line-height:1.6;text-align:left;"></div>
       <p style="margin-top:16px;font-size:13px;color:#888;">第一關審核人已收到通知<br>傳「我的請示」可查看審核進度</p>
     </div>
   </div>
@@ -162,8 +173,16 @@ async function init() {
     const data = await res.json();
     const all  = data.members || [];
     all.forEach(m => { membersMap[m.lineId] = m; });
+    const DEPT_ORDER = ["董事長室", "總經理室", "董總辦公室"];
+    const deptPri = d => { const i = DEPT_ORDER.indexOf(d || ""); return i >= 0 ? i : 999; };
     approverOptions = all
       .filter(m => (m.role === "admin" || m.role === "manager") && m.lineId !== myId)
+      .sort((a, b) => {
+        const pa = deptPri(a.dept), pb = deptPri(b.dept);
+        if (pa !== pb) return pa - pb;
+        if (a.role !== b.role) return a.role === "admin" ? -1 : 1;
+        return (a.name || "").localeCompare(b.name || "", "zh-Hant");
+      })
       .map(m => ({
         value: m.lineId,
         label: (m.role === "admin" ? "👑" : "🏷️") + " " + m.name + (m.dept ? "（" + m.dept + "）" : ""),
@@ -188,6 +207,27 @@ async function init() {
     // 催簽啟用/停用切換
     document.getElementById("escalateEnabled").addEventListener("change", function() {
       document.getElementById("escalateDaysRow").style.opacity = this.checked ? "1" : "0.4";
+    });
+
+    // 附件選取預覽
+    document.getElementById("attachFile").addEventListener("change", function() {
+      const area = document.getElementById("fileArea");
+      const label = document.getElementById("fileLabel");
+      if (this.files.length > 0) {
+        const f = this.files[0];
+        if (f.size > 10 * 1024 * 1024) {
+          alert("檔案大小超過 10 MB 限制，請選擇較小的檔案。");
+          this.value = "";
+          area.classList.remove("file-selected");
+          label.textContent = "點擊選取檔案（圖片、PDF、Word 等，最大 10 MB）";
+          return;
+        }
+        label.textContent = "📎 " + f.name + "（" + (f.size / 1024).toFixed(0) + " KB）";
+        area.classList.add("file-selected");
+      } else {
+        label.textContent = "點擊選取檔案（圖片、PDF、Word 等，最大 10 MB）";
+        area.classList.remove("file-selected");
+      }
     });
 
     document.getElementById("loading").style.display = "none";
@@ -299,10 +339,15 @@ async function submit() {
     const res  = await fetch(GAS + "?" + p.toString());
     const data = await res.json();
     if (data.status === "ok") {
+      const requestId = data.requestId || "";
       document.getElementById("app").style.display           = "none";
       document.getElementById("successScreen").style.display = "block";
       document.getElementById("succSubject").textContent = subject;
       document.getElementById("succChain").textContent   = "簽核鏈：" + names.join(" → ");
+      const fileInput = document.getElementById("attachFile");
+      if (fileInput.files.length > 0 && requestId) {
+        uploadAttachment(fileInput.files[0], requestId);
+      }
     } else {
       alert("送出失敗：" + (data.error || "未知錯誤"));
       btn.disabled = false; btn.textContent = "📬 送出請示";
@@ -310,6 +355,49 @@ async function submit() {
   } catch (e) {
     alert("網路錯誤，請稍後再試");
     btn.disabled = false; btn.textContent = "📬 送出請示";
+  }
+}
+
+async function uploadAttachment(file, requestId) {
+  const statusEl = document.getElementById("uploadStatus");
+  statusEl.style.display = "block";
+  statusEl.style.background = "#fff8e1";
+  statusEl.style.color = "#555";
+  statusEl.textContent = "⏳ 附件上傳中，請稍候…";
+
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = e => resolve(e.target.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const res  = await fetch(GAS, {
+      method: "POST",
+      body: JSON.stringify({
+        action:     "uploadFile",
+        requestId:  requestId,
+        userId:     myId,
+        fileName:   file.name,
+        mimeType:   file.type || "application/octet-stream",
+        fileBase64: base64,
+      }),
+    });
+    const data = await res.json();
+
+    if (data.status === "ok") {
+      statusEl.style.background = "#e8f5e9";
+      statusEl.style.color      = "#2E7D32";
+      statusEl.textContent      = "✅ 附件已關聯到請示，審核人可直接開啟。";
+    } else {
+      throw new Error(data.error || "上傳失敗");
+    }
+  } catch (err) {
+    statusEl.style.background = "#fff3e0";
+    statusEl.style.color      = "#E65100";
+    statusEl.innerHTML = "⚠️ 附件未能自動關聯（" + (err.message || "") + "）<br>"
+      + "請將檔案直接傳給 Bot，再輸入：<br><strong>關聯 " + requestId + "</strong>";
   }
 }
 
