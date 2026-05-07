@@ -366,6 +366,11 @@
   // ── 提交 ─────────────────────────────────────────────────
 
   async function submitTask() {
+    var btn = document.getElementById("btn-submit");
+    if (btn.disabled) return;
+    btn.disabled    = true;
+    btn.textContent = "檢查中…";
+
     var name    = document.getElementById("project-name").value.trim();
     var desc    = document.getElementById("description").value.trim();
     var due     = document.getElementById("due-date").value;
@@ -390,7 +395,13 @@
     chk(due,              "err-due");
     chk(reqData,          "err-req");
     chk(mgrIds.length > 0,"err-rcpt");
-    if (!valid) return;
+    if (!valid) {
+      btn.disabled    = false;
+      btn.textContent = "建立任務並通知";
+      return;
+    }
+
+    btn.textContent = "建立中…";
 
     // 收集提醒設定
     var reminderDays = [];
@@ -405,10 +416,6 @@
     document.querySelectorAll(".grp-cb:checked").forEach(function(cb) {
       groupIds.push(cb.dataset.gid);
     });
-
-    var btn = document.getElementById("btn-submit");
-    btn.disabled    = true;
-    btn.textContent = "建立中…";
 
     try {
       var taskId = "T-" + Date.now();

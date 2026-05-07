@@ -253,18 +253,22 @@ function updatePreview() {
 }
 
 async function submit() {
+  const btn = document.getElementById("btnSubmit");
+  if (btn.disabled) return;
+  btn.disabled    = true;
+  btn.textContent = "送出中…";
+
   const subject = document.getElementById("subject").value.trim();
   const content = document.getElementById("content").value.trim();
   const { ids, names } = getChain();
 
-  let ok = true;
   document.getElementById("subjectErr").style.display = !subject ? "block" : "none";
   document.getElementById("chainErr").style.display   = ids.length === 0 ? "block" : "none";
-  if (!subject || ids.length === 0) return;
-
-  const btn = document.getElementById("btnSubmit");
-  btn.disabled    = true;
-  btn.textContent = "送出中…";
+  if (!subject || ids.length === 0) {
+    btn.disabled    = false;
+    btn.textContent = "📬 送出請示";
+    return;
+  }
 
   const escalateEnabled = document.getElementById("escalateEnabled").checked;
   const escalateDays    = escalateEnabled
