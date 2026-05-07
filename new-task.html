@@ -129,6 +129,11 @@
     <div style="font-size:11px;color:#999;margin-top:5px;">一張單自動分派任務給多個部門</div>
   </div>
 
+  <!-- 群組快速建立提示（有 ?desc= 參數時顯示） -->
+  <div id="prefill-hint" style="display:none;background:#FFF3E0;border:1.5px solid #FF8F00;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#E65100;">
+    📋 已從群組訊息自動填入，請確認並補充截止日期與回報資料後送出。
+  </div>
+
   <div class="card">
     <label class="field-label">專案名稱 <span class="required">*</span></label>
     <input type="text" id="project-name" placeholder="例：Q2 物料盤點">
@@ -235,6 +240,28 @@
         buildGroupPicker(gData.groups || []);
       } catch (gErr) {
         buildGroupPicker([]);
+      }
+
+      // 群組快速建立：讀取 URL 參數預填表單
+      var qp             = new URLSearchParams(location.search);
+      var prefillDesc    = qp.get("desc")    || "";
+      var prefillGroupId = qp.get("groupId") || "";
+
+      if (prefillDesc) {
+        // 任務說明 → 填入完整訊息
+        document.getElementById("description").value = prefillDesc;
+        // 專案名稱 → 取第一行，去除常見前綴，截斷 25 字
+        var firstLine = prefillDesc.split(/[\n\r]/)[0]
+          .replace(/^[\s　]*[交辦指示派工請麻煩]+[：:，,\s]*/u, "")
+          .trim()
+          .substring(0, 25);
+        if (firstLine) document.getElementById("project-name").value = firstLine;
+        document.getElementById("prefill-hint").style.display = "block";
+      }
+      // 預選對應群組通知
+      if (prefillGroupId) {
+        var grpCb = document.querySelector('.grp-cb[data-gid="' + prefillGroupId + '"]');
+        if (grpCb) grpCb.checked = true;
       }
 
       show("form-wrap");
