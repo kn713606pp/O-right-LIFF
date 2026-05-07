@@ -106,7 +106,7 @@
     <div class="card">
       <label>📎 附件（選填）</label>
       <div class="file-area" id="fileArea" onclick="document.getElementById('attachFile').click()">
-        <div id="fileLabel">點擊選取檔案（圖片、PDF、Word 等，最大 10 MB）</div>
+        <div id="fileLabel">點擊選取檔案（圖片、PDF、Word 等，最大 20 MB）</div>
       </div>
       <input type="file" id="attachFile" style="display:none"
         accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip">
@@ -215,17 +215,17 @@ async function init() {
       const label = document.getElementById("fileLabel");
       if (this.files.length > 0) {
         const f = this.files[0];
-        if (f.size > 10 * 1024 * 1024) {
-          alert("檔案大小超過 10 MB 限制，請選擇較小的檔案。");
+        if (f.size > 20 * 1024 * 1024) {
+          alert("檔案大小超過 20 MB 限制，請選擇較小的檔案。");
           this.value = "";
           area.classList.remove("file-selected");
-          label.textContent = "點擊選取檔案（圖片、PDF、Word 等，最大 10 MB）";
+          label.textContent = "點擊選取檔案（圖片、PDF、Word 等，最大 20 MB）";
           return;
         }
         label.textContent = "📎 " + f.name + "（" + (f.size / 1024).toFixed(0) + " KB）";
         area.classList.add("file-selected");
       } else {
-        label.textContent = "點擊選取檔案（圖片、PDF、Word 等，最大 10 MB）";
+        label.textContent = "點擊選取檔案（圖片、PDF、Word 等，最大 20 MB）";
         area.classList.remove("file-selected");
       }
     });
