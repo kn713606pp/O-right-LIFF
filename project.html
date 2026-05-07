@@ -77,6 +77,28 @@
     }
     .inline-hint { font-size: 11px; color: #999; margin-top: 3px; }
 
+    /* 通知對象多選 */
+    .people-box {
+      border: 1.5px solid #DDD; border-radius: 8px; padding: 6px 10px;
+      background: white; min-height: 38px;
+    }
+    .cb-select-all {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: bold; color: #1E3A5F;
+      padding: 4px 0 7px; border-bottom: 1px solid #EEE; margin-bottom: 5px;
+      cursor: pointer; user-select: none;
+    }
+    .cb-person {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; padding: 4px 0; cursor: pointer;
+      color: #333; user-select: none;
+    }
+    .cb-select-all input[type="checkbox"],
+    .cb-person input[type="checkbox"] {
+      width: 16px; height: 16px; flex-shrink: 0; cursor: pointer;
+      accent-color: #1E3A5F;
+    }
+
     .btn-add {
       width: 100%; padding: 11px; background: white;
       color: #1E3A5F; border: 1.5px dashed #1E3A5F;
@@ -89,7 +111,7 @@
       color: white; border: none; border-radius: 10px;
       font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
     }
-    .btn-submit:disabled { background: #AAA; }
+    .btn-submit:disabled { background: #AAA; cursor: not-allowed; }
 
     #loading  { text-align: center; padding: 60px 20px; color: #999; }
     #no-perm  { display: none; text-align: center; padding: 60px 20px; color: #C62828; }
@@ -150,7 +172,7 @@
     <div id="task-list"></div>
 
     <button class="btn-add" type="button" onclick="addRow()">＋ 新增部門任務</button>
-    <div class="error-msg" id="err-tasks">請確認每個部門任務均已填寫完整（部門、負責人、任務說明、截止日期）</div>
+    <div class="error-msg" id="err-tasks">請確認每個部門任務均已填寫完整（部門、通知對象、任務說明、截止日期）</div>
   </div>
 
   <div class="summary-box" id="summary-box"></div>
@@ -228,29 +250,33 @@
           ? '<button class="btn-del" onclick="removeRow(\'' + id + '\')">✕ 移除</button>'
           : '') +
       '</div>' +
-      '<div class="two-col">' +
-        '<div>' +
-          '<label class="inner-label">部門 <span class="required">*</span></label>' +
-          '<select id="' + id + '_dept" onchange="onDeptChange(\'' + id + '\')">' + deptOpts + '</select>' +
-        '</div>' +
-        '<div>' +
-          '<label class="inner-label">負責人 <span class="required">*</span></label>' +
-          '<select id="' + id + '_person"><option value="">— 請先選部門 —</option></select>' +
+      // 部門選擇（全寬）
+      '<div class="field-group">' +
+        '<label class="inner-label">部門 <span class="required">*</span></label>' +
+        '<select id="' + id + '_dept" onchange="onDeptChange(\'' + id + '\')">' + deptOpts + '</select>' +
+      '</div>' +
+      // 通知對象（全寬，多選勾選）
+      '<div class="field-group">' +
+        '<label class="inner-label">通知對象 <span class="required">*</span></label>' +
+        '<div id="' + id + '_people" class="people-box">' +
+          '<span style="color:#999;font-size:12px;padding:4px 2px;display:block;">— 請先選擇部門 —</span>' +
         '</div>' +
       '</div>' +
+      // 任務說明
       '<div class="field-group">' +
         '<label class="inner-label">此部門的任務說明 <span class="required">*</span></label>' +
         '<textarea id="' + id + '_desc" rows="2"' +
           ' placeholder="例：提供本季各通路銷售金額（含線上線下），以萬元為單位"></textarea>' +
       '</div>' +
+      // 截止日期 + 需要回報的資料
       '<div class="two-col">' +
         '<div>' +
           '<label class="inner-label">截止日期 <span class="required">*</span></label>' +
           '<input type="date" id="' + id + '_due">' +
         '</div>' +
         '<div>' +
-          '<label class="inner-label">需要提供的格式</label>' +
-          '<input type="text" id="' + id + '_req" placeholder="例：Excel 表格">' +
+          '<label class="inner-label">需要回報的資料</label>' +
+          '<input type="text" id="' + id + '_req" placeholder="例：銷售金額、數量">' +
         '</div>' +
       '</div>';
 
@@ -271,25 +297,50 @@
   }
 
   function onDeptChange(id) {
-    var dept     = document.getElementById(id + "_dept").value;
-    var personEl = document.getElementById(id + "_person");
-    var members  = deptMap[dept] || [];
+    var dept      = document.getElementById(id + "_dept").value;
+    var peopleBox = document.getElementById(id + "_people");
+    var members   = deptMap[dept] || [];
 
     if (!dept) {
-      personEl.innerHTML = '<option value="">— 請先選部門 —</option>';
+      peopleBox.innerHTML = '<span style="color:#999;font-size:12px;padding:4px 2px;display:block;">— 請先選擇部門 —</span>';
       return;
     }
     if (members.length === 0) {
-      personEl.innerHTML = '<option value="">— 此部門尚無成員 —</option>';
+      peopleBox.innerHTML = '<span style="color:#C62828;font-size:12px;padding:4px 2px;display:block;">— 此部門尚無成員 —</span>';
       return;
     }
 
-    personEl.innerHTML = '<option value="">— 選擇負責人 —</option>' +
-      members.map(function(m) {
-        var tag = m.role === "admin" ? " 👑" : m.role === "manager" ? " 🏷️" : "";
-        return '<option value="' + m.lineId + '" data-name="' + esc(m.name) + '">' +
-          esc(m.name) + tag + '</option>';
-      }).join("");
+    var html = '<label class="cb-select-all">' +
+      '<input type="checkbox" class="cb-all" onchange="toggleSelectAll(\'' + id + '\', this)">' +
+      '全選（共 ' + members.length + ' 人）' +
+      '</label>';
+
+    html += members.map(function(m) {
+      var tag = m.role === "admin" ? " 👑" : m.role === "manager" ? " 🏷️" : "";
+      return '<label class="cb-person">' +
+        '<input type="checkbox" class="cb-member" value="' + esc(m.lineId) + '" data-name="' + esc(m.name) + '" onchange="syncSelectAll(\'' + id + '\')">' +
+        esc(m.name) + tag +
+        '</label>';
+    }).join("");
+
+    peopleBox.innerHTML = html;
+  }
+
+  function toggleSelectAll(id, allCb) {
+    var peopleBox = document.getElementById(id + "_people");
+    peopleBox.querySelectorAll(".cb-member").forEach(function(cb) {
+      cb.checked = allCb.checked;
+    });
+  }
+
+  function syncSelectAll(id) {
+    var peopleBox    = document.getElementById(id + "_people");
+    var cbs          = peopleBox.querySelectorAll(".cb-member");
+    var allCb        = peopleBox.querySelector(".cb-all");
+    if (!allCb) return;
+    var checkedCount = peopleBox.querySelectorAll(".cb-member:checked").length;
+    allCb.indeterminate = (checkedCount > 0 && checkedCount < cbs.length);
+    allCb.checked       = (checkedCount === cbs.length);
   }
 
   function updateCount() {
@@ -300,6 +351,9 @@
   // ── 提交 ────────────────────────────────────────────────────
 
   async function submit() {
+    var btn = document.getElementById("btn-submit");
+    if (btn.disabled) return;
+
     var pname = document.getElementById("pname").value.trim();
     var pdesc = document.getElementById("pdesc").value.trim();
 
@@ -314,16 +368,26 @@
     // collect tasks
     var tasks = [];
     document.querySelectorAll(".task-block").forEach(function(block) {
-      var id     = block.id;
-      var dept   = document.getElementById(id + "_dept").value;
-      var pEl    = document.getElementById(id + "_person");
-      var pid    = pEl.value;
-      var pOpt   = pEl.options[pEl.selectedIndex];
-      var pname2 = pOpt && pid ? (pOpt.getAttribute("data-name") || pOpt.text.replace(/ [👑🏷️]/g, "").trim()) : "";
-      var desc   = document.getElementById(id + "_desc").value.trim();
-      var due    = document.getElementById(id + "_due").value;
-      var req    = document.getElementById(id + "_req").value.trim();
-      tasks.push({ dept: dept, managerLineId: pid, managerName: pname2, description: desc, dueDate: due, requiredData: req });
+      var id        = block.id;
+      var dept      = document.getElementById(id + "_dept").value;
+      var peopleBox = document.getElementById(id + "_people");
+      var checked   = peopleBox ? peopleBox.querySelectorAll(".cb-member:checked") : [];
+      var pids = [], pnames = [];
+      checked.forEach(function(cb) {
+        pids.push(cb.value);
+        pnames.push(cb.getAttribute("data-name") || "");
+      });
+      var desc = document.getElementById(id + "_desc").value.trim();
+      var due  = document.getElementById(id + "_due").value;
+      var req  = document.getElementById(id + "_req").value.trim();
+      tasks.push({
+        dept:          dept,
+        managerLineId: pids.join(","),
+        managerName:   pnames.join(","),
+        description:   desc,
+        dueDate:       due,
+        requiredData:  req,
+      });
     });
 
     var tasksOk = tasks.length > 0 && tasks.every(function(t) {
@@ -334,13 +398,12 @@
 
     // show preview
     var prevLines = tasks.map(function(t) {
-      return "・" + t.dept + "　" + t.managerName + "　→ " + t.dueDate;
+      return "・" + t.dept + "　" + t.managerName.replace(/,/g, "、") + "　→ " + t.dueDate;
     }).join("<br>");
     var summaryEl = document.getElementById("summary-box");
     summaryEl.innerHTML = "✅ 即將通知以下部門：<br>" + prevLines;
     summaryEl.style.display = "block";
 
-    var btn = document.getElementById("btn-submit");
     btn.disabled    = true;
     btn.textContent = "建立中…";
 
@@ -358,7 +421,7 @@
 
       if (result.status === "ok") {
         var deptNames = tasks.map(function(t) { return t.dept; }).join("、");
-        var names     = tasks.map(function(t) { return t.managerName; }).join("、");
+        var names     = tasks.map(function(t) { return t.managerName.replace(/,/g, "、"); }).join("、");
         document.getElementById("succ-sub").innerHTML =
           "<b>" + esc(pname) + "</b><br><br>" +
           "已通知部門：" + esc(deptNames) + "<br>" +
