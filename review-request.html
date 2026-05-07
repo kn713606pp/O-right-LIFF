@@ -67,12 +67,13 @@
     .btn {
       flex: 1; min-width: 80px; padding: 12px 8px; border: none;
       border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;
+      touch-action: manipulation;
     }
     .btn-approve  { background: #2E7D32; color: #fff; }
     .btn-reject   { background: #C62828; color: #fff; }
     .btn-info     { background: #E65100; color: #fff; }
     .btn-escalate { background: #4A235A; color: #fff; }
-    .btn:disabled { background: #aaa; cursor: not-allowed; }
+    .btn:disabled { background: #aaa; cursor: not-allowed; pointer-events: none; opacity: 0.6; }
 
     /* 加簽選人 */
     #escalatePanel { display: none; margin-top: 12px; padding: 12px;
@@ -225,15 +226,26 @@ async function init() {
 
     // 判斷顯示哪個面板
     const currentApproverId = reqData.approverIds[reqData.currentLevel];
-    const myChainLevel = reqData.approverIds.indexOf(myId);
+    const myChainLevel      = reqData.approverIds.indexOf(myId);
+    const isRequester       = reqData.requesterLineId
+      ? reqData.requesterLineId === myId
+      : myChainLevel === -1;
 
-    if (reqData.status !== "待審核" && reqData.status !== "需補充") {
-      showDonePanel();
+    if (isRequester) {
+      document.querySelector(".header h1").textContent = "📬 查看請示";
+      document.getElementById("headerSub").textContent = "查看您提交的請示進度";
+    }
+
+    const isDone = reqData.status !== "待審核" && reqData.status !== "需補充";
+    if (isDone) {
+      showDonePanel(isRequester);
     } else if (currentApproverId === myId) {
       // 正常審核面板（預設顯示）
     } else if (myChainLevel > reqData.currentLevel) {
       // 上層主管：可跳關代審
       showSkipPanel(myChainLevel);
+    } else if (isRequester) {
+      showRequesterPanel();
     } else {
       document.getElementById("replyPanel").innerHTML =
         "<div class='already-done'><p style='font-size:28px;'>👀</p>"
@@ -283,16 +295,55 @@ function renderDetail() {
     + "<span class='status-badge " + (statusClass[reqData.status] || "s-pending") + "'>" + reqData.status + "</span>"
     + "<span class='level-badge' style='margin-left:6px;'>第 " + (lvl + 1) + " 關 / 共 " + total + " 關</span>"
     + chainHtml
-    + (reqData.content ? "<div class='content-box'>" + esc(reqData.content) + "</div>" : "")
+    + (reqData.content ? "<div class='content-box'>" + escWithLinks(reqData.content) + "</div>" : "")
     + commentsHtml;
 }
 
-function showDonePanel() {
+function showDonePanel(isOwner) {
   const statusClass = { "已批准": "s-approved", "已退回": "s-rejected", "需補充": "s-info" };
+  const icon = reqData.status === "已批准" ? "✅" : reqData.status === "已退回" ? "❌" : "⚠️";
+  const hint = isOwner && reqData.status === "已退回"
+    ? "<p style='margin-top:12px;font-size:13px;color:#888;'>可重新提交新的請示。</p>" : "";
   document.getElementById("replyPanel").innerHTML =
-    "<div class='already-done'><p style='font-size:32px;'>" + (reqData.status === "已批准" ? "✅" : reqData.status === "已退回" ? "❌" : "⚠️") + "</p>"
+    "<div class='already-done'><p style='font-size:32px;'>" + icon + "</p>"
     + "<p style='margin-top:12px;font-weight:700;'>此請示已審核完畢</p>"
-    + "<p style='margin-top:6px;'><span class='status-badge " + (statusClass[reqData.status] || "") + "'>" + reqData.status + "</span></p></div>";
+    + "<p style='margin-top:6px;'><span class='status-badge " + (statusClass[reqData.status] || "") + "'>" + reqData.status + "</span></p>"
+    + hint + "</div>";
+}
+
+function showRequesterPanel() {
+  const lvl  = reqData.currentLevel;
+  const appr = reqData.approverNames[lvl] || "？";
+  document.getElementById("replyPanel").innerHTML =
+    "<div style='text-align:center;padding:16px 0 8px'>"
+    + "<p style='font-size:28px;'>📬</p>"
+    + "<p style='margin-top:8px;font-weight:700;'>您的請示進行中</p>"
+    + "<p style='margin-top:6px;font-size:13px;color:#666;'>第 " + (lvl + 1) + " 關（" + esc(appr) + "）審核中</p>"
+    + "</div>"
+    + "<button id='btnWithdraw' onclick='doWithdraw()' style='width:100%;margin-top:8px;padding:12px;"
+    + "background:#ffebee;color:#C62828;border:1.5px solid #EF9A9A;border-radius:10px;"
+    + "font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation;'>🔙 收回請示</button>"
+    + "<p style='font-size:12px;color:#aaa;margin-top:8px;text-align:center;'>收回後可重新修改並提交</p>";
+}
+
+async function doWithdraw() {
+  const btn = document.getElementById("btnWithdraw");
+  if (!btn || btn.disabled) return;
+  if (!confirm("確定要收回此請示？目前關的審核人將會收到通知。")) return;
+  btn.disabled = true; btn.style.opacity = "0.6"; btn.textContent = "收回中…";
+  try {
+    const res  = await fetch(GAS + "?action=withdrawRequest&userId=" + myId + "&requestId=" + reqData.requestId);
+    const data = await res.json();
+    if (data.status === "ok") {
+      showSuccess("🔙", "請示已收回", "審核人已收到通知。\n如需重新提交，請開啟「請示」頁面。");
+    } else {
+      alert("失敗：" + (data.error || "未知錯誤"));
+      btn.disabled = false; btn.style.opacity = ""; btn.textContent = "🔙 收回請示";
+    }
+  } catch(e) {
+    alert("網路錯誤，請稍後再試");
+    btn.disabled = false; btn.style.opacity = ""; btn.textContent = "🔙 收回請示";
+  }
 }
 
 function showSkipPanel(myLevel) {
@@ -522,6 +573,11 @@ function showSuccess(icon, title, desc) {
 
 function esc(s) {
   return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");
+}
+function escWithLinks(s) {
+  const e = String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");
+  return e.replace(/(https?:\/\/[^\s<&"]+)/g,
+    '<a href="$1" target="_blank" style="color:#4A235A;word-break:break-all;text-decoration:underline;">$1</a>');
 }
 
 init();
