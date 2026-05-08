@@ -106,6 +106,16 @@
     }
     .reminder-item input[type="checkbox"] { width: 17px; height: 17px; cursor: pointer; flex-shrink: 0; }
 
+    /* 任務類型 */
+    .type-btn {
+      flex: 1; padding: 12px 10px; border: 2px solid #DDD;
+      border-radius: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+      display: block;
+    }
+    .type-btn.selected { border-color: #1E3A5F; background: #EBF1F8; }
+    .type-btn input[type="radio"] { display: none; }
+    .type-sub { font-size: 11px; color: #777; margin-top: 3px; font-weight: normal; }
+
     /* 附件 */
     .btn-add-file {
       width: 100%; padding: 12px; border: 1.5px dashed #AAA; border-radius: 8px;
@@ -173,6 +183,25 @@
   </div>
 
   <div class="card">
+    <label class="field-label">任務類型 <span class="required">*</span></label>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <label class="type-btn selected" id="lbl-report">
+        <input type="radio" name="taskType" value="report" id="type-report" checked>
+        <strong>📋 需回報</strong>
+        <div class="type-sub">完成後需填寫回報內容</div>
+      </label>
+      <label class="type-btn" id="lbl-notify">
+        <input type="radio" name="taskType" value="notify" id="type-notify">
+        <strong>🔔 僅通知</strong>
+        <div class="type-sub">一次性提醒，不需回報</div>
+      </label>
+    </div>
+    <div id="report-scope" style="margin-top:10px;padding:10px;background:#F8FAFC;border-radius:8px;font-size:12px;color:#555;display:block;">
+      回報後自動通知：起單人 ／ 指定群組 ／ 跨部門主管（依下方設定）
+    </div>
+  </div>
+
+  <div class="card" id="req-card">
     <label class="field-label">需要回報的資料 <span class="required">*</span></label>
     <input type="text" id="required-data" placeholder="例：庫存總數量（整數）">
     <div class="error-msg" id="err-req">請說明需要的資料</div>
@@ -197,7 +226,7 @@
     <div id="group-list"></div>
   </div>
 
-  <div class="card">
+  <div class="card" id="reminder-card">
     <label class="field-label">提醒設定 <span style="font-size:11px;font-weight:normal;color:#999;">（系統依截止日自動提醒負責人）</span></label>
     <div class="reminder-opts">
       <label class="reminder-item"><input type="checkbox" id="rem-7"> 截止前 7 天提醒</label>
@@ -297,6 +326,19 @@
         var grpCb = document.querySelector('.grp-cb[data-gid="' + prefillGroupId + '"]');
         if (grpCb) grpCb.checked = true;
       }
+
+      // 任務類型切換
+      document.querySelectorAll('input[name="taskType"]').forEach(function(radio) {
+        radio.addEventListener("change", function() {
+          var isNotify = this.value === "notify";
+          document.getElementById("lbl-report").classList.toggle("selected", !isNotify);
+          document.getElementById("lbl-notify").classList.toggle("selected",  isNotify);
+          document.getElementById("req-card").style.display      = isNotify ? "none" : "block";
+          document.getElementById("reminder-card").style.display = isNotify ? "none" : "block";
+          document.getElementById("report-scope").style.display  = isNotify ? "none" : "block";
+          document.getElementById("btn-submit").textContent = isNotify ? "建立提醒並通知" : "建立任務並通知";
+        });
+      });
 
       document.getElementById("taskAttachFile").addEventListener("change", function() {
         if (!this.files.length) return;
@@ -447,10 +489,13 @@
     btn.disabled    = true;
     btn.textContent = "檢查中…";
 
+    var taskType = document.getElementById("type-notify").checked ? "notify" : "report";
+    var isNotify = taskType === "notify";
+
     var name    = document.getElementById("project-name").value.trim();
     var desc    = document.getElementById("description").value.trim();
     var due     = document.getElementById("due-date").value;
-    var reqData = document.getElementById("required-data").value.trim();
+    var reqData = isNotify ? "（僅通知）" : document.getElementById("required-data").value.trim();
 
     var checked  = document.querySelectorAll(".mbr-item input:checked");
     var mgrIds   = [], mgrNames = [], depts = [];
@@ -469,7 +514,7 @@
     chk(name,             "err-name");
     chk(desc,             "err-desc");
     chk(due,              "err-due");
-    chk(reqData,          "err-req");
+    if (!isNotify) chk(reqData, "err-req");
     chk(mgrIds.length > 0,"err-rcpt");
     if (!valid) {
       btn.disabled    = false;
@@ -507,7 +552,8 @@
         + "&dueDate="          + enc(due)
         + "&requiredData="     + enc(reqData)
         + "&notifyGroupIds="   + enc(groupIds.join(","))
-        + "&reminderSchedule=" + enc(reminderSchedule);
+        + "&taskType="         + enc(taskType)
+        + "&reminderSchedule=" + enc(isNotify ? "" : reminderSchedule);
 
       var res    = await fetch(url);
       var result = await res.json();
