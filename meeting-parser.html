@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 會議解析</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f5f5f5;
+    color: #333;
+    font-size: 15px;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: #4A235A;
+    color: #fff;
+    padding: 16px;
+    text-align: center;
+  }
+  .header h1 { font-size: 18px; margin-bottom: 4px; }
+  .header p  { font-size: 12px; opacity: 0.8; }
+
+  /* ── Section cards ── */
+  .card {
+    background: #fff;
+    margin: 12px;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #4A235A;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── Textarea ── */
+  textarea {
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 160px;
+    line-height: 1.6;
+    outline: none;
+    font-family: inherit;
+  }
+  textarea:focus { border-color: #4A235A; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary  { background: #4A235A; color: #fff; }
+  .btn-success  { background: #2E7D32; color: #fff; }
+  .btn-outline  { background: #fff; color: #555; border: 1px solid #ccc; }
+  .btn + .btn   { margin-top: 8px; }
+
+  /* ── Spinner ── */
+  #loadingSection {
+    text-align: center;
+    padding: 32px 16px;
+    display: none;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 4px solid #e0d0e8;
+    border-top-color: #4A235A;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Result sections ── */
+  #resultSection { display: none; }
+
+  .section-header {
+    font-size: 14px;
+    font-weight: 700;
+    color: #555;
+    margin: 16px 12px 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .count-badge {
+    background: #4A235A;
+    color: #fff;
+    font-size: 11px;
+    border-radius: 10px;
+    padding: 1px 7px;
+  }
+
+  /* ── Task item ── */
+  .item-card {
+    background: #fff;
+    margin: 0 12px 8px;
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border-left: 4px solid #4A235A;
+    position: relative;
+  }
+  .item-card.meeting-item { border-left-color: #4A235A; }
+  .item-card.sync-item    { border-left-color: #E65100; }
+
+  .item-name {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+  .item-meta {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  .item-desc {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.5;
+    margin-top: 6px;
+  }
+
+  /* Editable fields */
+  .edit-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .edit-row label {
+    font-size: 12px;
+    color: #888;
+    white-space: nowrap;
+    min-width: 56px;
+  }
+  .edit-row input, .edit-row select {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 13px;
+    outline: none;
+  }
+  .edit-row input:focus, .edit-row select:focus { border-color: #4A235A; }
+
+  /* Assignee picker */
+  .assignee-picker {
+    margin-top: 8px;
+  }
+  .assignee-picker label {
+    font-size: 12px;
+    color: #888;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .assignee-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .assignee-chip {
+    background: #f0e8f5;
+    border: 1px solid #c9a8e0;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .assignee-chip.selected {
+    background: #4A235A;
+    color: #fff;
+    border-color: #4A235A;
+  }
+
+  /* Remove button */
+  .remove-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: none;
+    border: none;
+    color: #bbb;
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .remove-btn:hover { color: #e53935; }
+
+  /* Toggle checkbox for item */
+  .include-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 6px;
+  }
+  .include-toggle input[type="checkbox"] {
+    width: 16px; height: 16px;
+    accent-color: #4A235A;
+  }
+  .item-card.excluded { opacity: 0.4; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 12px;
+    color: #aaa;
+    font-size: 13px;
+  }
+
+  /* ── Error ── */
+  .error-box {
+    background: #fff3f3;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 12px;
+    color: #c62828;
+    font-size: 13px;
+    display: none;
+  }
+
+  /* ── Confirm footer ── */
+  #confirmFooter {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    padding: 12px;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+    display: none;
+  }
+  .confirm-summary {
+    font-size: 12px;
+    color: #888;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  /* ── Done ── */
+  #doneSection {
+    display: none;
+    text-align: center;
+    padding: 48px 16px;
+  }
+  .done-icon { font-size: 56px; margin-bottom: 12px; }
+  .done-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .done-sub   { font-size: 14px; color: #888; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📄 AI 會議解析</h1>
+  <p>貼入會議紀錄，系統自動提取任務與會議</p>
+</div>
+
+<!-- 輸入區 -->
+<div id="inputSection">
+  <div class="card">
+    <div class="card-title">✏️ 貼入會議紀錄</div>
+    <textarea id="meetingText" placeholder="將會議紀錄文字貼在這裡...
+
+例如：
+5/9 週五主管會議記錄
+決議事項：
+1. 倉儲部王主任負責盤點作業，須在5/16前完成並回報。
+2. 採購部陳主任協助確認供應商報價，截止日5/20。
+3. 下週二下午2點召開跨部門協調會，由副總主持。
+4. 行銷部與品牌溝通中心需同步第二季促銷方案。"></textarea>
+    <div style="margin-top:10px; font-size:12px; color:#aaa; text-align:right;" id="charCount">0 字</div>
+  </div>
+
+  <div style="margin: 0 12px 80px;">
+    <button class="btn btn-primary" id="parseBtn" onclick="parseNotes()">
+      🤖 AI 解析
+    </button>
+  </div>
+</div>
+
+<!-- 載入中 -->
+<div id="loadingSection">
+  <div class="spinner"></div>
+  <p style="color:#888; font-size:14px;">AI 解析中，請稍候…</p>
+</div>
+
+<!-- 錯誤提示 -->
+<div class="error-box" id="errorBox"></div>
+
+<!-- 解析結果 -->
+<div id="resultSection">
+
+  <!-- 任務清單 -->
+  <div class="section-header">
+    📋 任務清單 <span class="count-badge" id="taskCount">0</span>
+  </div>
+  <div id="taskList"></div>
+
+  <!-- 會議排程 -->
+  <div class="section-header">
+    📅 會議排程 <span class="count-badge" id="meetingCount">0</span>
+  </div>
+  <div id="meetingList"></div>
+
+  <!-- 跨部門協調 -->
+  <div class="section-header">
+    🔗 跨部門協調 <span class="count-badge" id="syncCount">0</span>
+  </div>
+  <div id="syncList"></div>
+
+  <div style="height:100px;"></div>
+</div>
+
+<!-- 確認送出 footer -->
+<div id="confirmFooter">
+  <div class="confirm-summary" id="confirmSummary"></div>
+  <button class="btn btn-success" id="confirmBtn" onclick="confirmAll()">
+    ✅ 確認送出並執行
+  </button>
+  <button class="btn btn-outline" onclick="resetAll()" style="margin-top:6px;">
+    ← 重新輸入
+  </button>
+</div>
+
+<!-- 完成畫面 -->
+<div id="doneSection">
+  <div class="done-icon">🎉</div>
+  <div class="done-title">執行完成！</div>
+  <div class="done-sub" id="doneSub"></div>
+  <button class="btn btn-outline" onclick="liff.closeWindow()" style="margin-top:24px; max-width:200px; margin-left:auto; margin-right:auto;">
+    關閉
+  </button>
+</div>
+
+<script>
+// ── 全域狀態 ──────────────────────────────────────────────────
+var GAS_URL  = "";
+var LIFF_ID  = "";
+var userId   = "";
+var userName = "";
+var members  = [];
+var parsed   = { tasks: [], meetings: [], crossDeptSyncs: [] };
+
+// ── LIFF 初始化 ──────────────────────────────────────────────
+liff.init({ liffId: "2009974832-1tuzOcJQ" }).then(function() {
+  if (!liff.isLoggedIn()) { liff.login(); return; }
+  return liff.getProfile();
+}).then(function(profile) {
+  if (!profile) return;
+  userId   = profile.userId;
+  userName = profile.displayName;
+  GAS_URL  = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"; // 部署後更新
+
+  // 載入成員清單（用於指派）
+  fetch(GAS_URL + "?action=getMembersList")
+    .then(function(r) { return r.json(); })
+    .then(function(d) { members = d.members || []; })
+    .catch(function() { members = []; });
+}).catch(function(err) {
+  console.error("LIFF init error:", err);
+});
+
+// ── 字數計算 ──────────────────────────────────────────────────
+document.getElementById("meetingText").addEventListener("input", function() {
+  document.getElementById("charCount").textContent = this.value.length + " 字";
+});
+
+// ── AI 解析 ──────────────────────────────────────────────────
+function parseNotes() {
+  var text = document.getElementById("meetingText").value.trim();
+  if (!text) { showError("請先貼入會議紀錄內容"); return; }
+
+  showSection("loading");
+  hideError();
+
+  fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "parseMeeting", text: text }),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.error) { showError(data.error); showSection("input"); return; }
+    parsed = data;
+    renderResult();
+    showSection("result");
+  })
+  .catch(function(err) {
+    showError("網路錯誤，請確認連線後重試：" + err.message);
+    showSection("input");
+  });
+}
+
+// ── 渲染解析結果 ─────────────────────────────────────────────
+function renderResult() {
+  renderTasks(parsed.tasks || []);
+  renderMeetings(parsed.meetings || []);
+  renderSyncs(parsed.crossDeptSyncs || []);
+  updateConfirmSummary();
+  document.getElementById("confirmFooter").style.display = "block";
+}
+
+function renderTasks(tasks) {
+  var el = document.getElementById("taskList");
+  document.getElementById("taskCount").textContent = tasks.length;
+  if (!tasks.length) {
+    el.innerHTML = '<div class="empty-state">未偵測到任務</div>';
+    return;
+  }
+  el.innerHTML = tasks.map(function(t, i) {
+    var memberOptions = members.map(function(m) {
+      return '<option value="' + m.lineId + '" data-name="' + esc(m.name || m.displayName) + '">' +
+             esc((m.name || m.displayName) + (m.dept ? '（' + m.dept + '）' : '')) + '</option>';
+    }).join("");
+
+    return [
+      '<div class="item-card" id="taskCard' + i + '">',
+      '  <button class="remove-btn" onclick="removeTask(' + i + ')" title="移除">×</button>',
+      '  <div class="include-toggle">',
+      '    <input type="checkbox" id="taskCheck' + i + '" checked onchange="toggleItem(\'task\',' + i + ')">',
+      '    <label for="taskCheck' + i + '">納入執行</label>',
+      '  </div>',
+      '  <div class="item-name">' + esc(t.name) + '</div>',
+      '  <div class="edit-row">',
+      '    <label>任務名稱</label>',
+      '    <input type="text" id="taskName' + i + '" value="' + esc(t.name) + '">',
+      '  </div>',
+      '  <div class="edit-row">',
+      '    <label>截止日期</label>',
+      '    <input type="date" id="taskDue' + i + '" value="' + (t.dueDate || '') + '">',
+      '  </div>',
+      '  <div class="edit-row">',
+      '    <label>負責部門</label>',
+      '    <input type="text" id="taskDept' + i + '" value="' + esc(t.dept || '') + '">',
+      '  </div>',
+      '  <div class="edit-row">',
+      '    <label>負責人</label>',
+      '    <select id="taskAssignee' + i + '">',
+      '      <option value="">— 尚未指定 —</option>',
+      memberOptions,
+      '    </select>',
+      '  </div>',
+      t.requiredData ? '  <div class="item-desc">📎 需要資料：' + esc(t.requiredData) + '</div>' : '',
+      t.description  ? '  <div class="item-desc" style="margin-top:4px;color:#777;">' + esc(t.description) + '</div>' : '',
+      '</div>',
+    ].join("\n");
+  }).join("");
+
+  // 預選負責人（用姓名比對）
+  tasks.forEach(function(t, i) {
+    if (!t.assigneeNames || !t.assigneeNames.length) return;
+    var name = t.assigneeNames[0];
+    var sel = document.getElementById("taskAssignee" + i);
+    if (!sel) return;
+    Array.from(sel.options).forEach(function(opt) {
+      if (opt.dataset.name && opt.dataset.name.indexOf(name) !== -1) sel.value = opt.value;
+    });
+  });
+}
+
+function renderMeetings(meetings) {
+  var el = document.getElementById("meetingList");
+  document.getElementById("meetingCount").textContent = meetings.length;
+  if (!meetings.length) {
+    el.innerHTML = '<div class="empty-state">未偵測到會議排程</div>';
+    return;
+  }
+  el.innerHTML = meetings.map(function(m, i) {
+    return [
+      '<div class="item-card meeting-item" id="meetingCard' + i + '">',
+      '  <button class="remove-btn" onclick="removeMeeting(' + i + ')" title="移除">×</button>',
+      '  <div class="include-toggle">',
+      '    <input type="checkbox" id="meetingCheck' + i + '" checked onchange="toggleItem(\'meeting\',' + i + ')">',
+      '    <label for="meetingCheck' + i + '">建立 Google Calendar 並發送通知</label>',
+      '  </div>',
+      '  <div class="item-name">' + esc(m.title) + '</div>',
+      '  <div class="edit-row">',
+      '    <label>會議標題</label>',
+      '    <input type="text" id="meetingTitle' + i + '" value="' + esc(m.title) + '">',
+      '  </div>',
+      '  <div class="edit-row">',
+      '    <label>時　間</label>',
+      '    <input type="datetime-local" id="meetingDatetime' + i + '" value="' + (m.datetime ? m.datetime.replace(' ', 'T') : '') + '">',
+      '  </div>',
+      '  <div class="edit-row">',
+      '    <label>地　點</label>',
+      '    <input type="text" id="meetingLocation' + i + '" value="' + esc(m.location || '') + '" placeholder="選填">',
+      '  </div>',
+      m.agenda ? '  <div class="item-desc">📋 議程：' + esc(m.agenda) + '</div>' : '',
+      m.attendeeNames && m.attendeeNames.length
+        ? '  <div class="item-meta" style="margin-top:8px;">👥 ' + esc(m.attendeeNames.join('、')) + '</div>'
+        : (m.attendeeDepts && m.attendeeDepts.length
+          ? '  <div class="item-meta" style="margin-top:8px;">🏢 ' + esc(m.attendeeDepts.join('、')) + '</div>'
+          : ''),
+      '</div>',
+    ].join("\n");
+  }).join("");
+}
+
+function renderSyncs(syncs) {
+  var el = document.getElementById("syncList");
+  document.getElementById("syncCount").textContent = syncs.length;
+  if (!syncs.length) {
+    el.innerHTML = '<div class="empty-state">未偵測到跨部門協調事項</div>';
+    return;
+  }
+  el.innerHTML = syncs.map(function(s, i) {
+    return [
+      '<div class="item-card sync-item" id="syncCard' + i + '">',
+      '  <button class="remove-btn" onclick="removeSync(' + i + ')" title="移除">×</button>',
+      '  <div class="include-toggle">',
+      '    <input type="checkbox" id="syncCheck' + i + '" checked onchange="toggleItem(\'sync\',' + i + ')">',
+      '    <label for="syncCheck' + i + '">發送協調通知</label>',
+      '  </div>',
+      '  <div class="item-name">' + esc(s.fromDept || '') + ' → ' + esc(s.toDept || '') + '</div>',
+      '  <div class="item-desc">' + esc(s.message) + '</div>',
+      '</div>',
+    ].join("\n");
+  }).join("");
+}
+
+// ── 移除 / 切換包含 ──────────────────────────────────────────
+function removeTask(i) {
+  var card = document.getElementById("taskCard" + i);
+  if (card) card.remove();
+  updateConfirmSummary();
+}
+function removeMeeting(i) {
+  var card = document.getElementById("meetingCard" + i);
+  if (card) card.remove();
+  updateConfirmSummary();
+}
+function removeSync(i) {
+  var card = document.getElementById("syncCard" + i);
+  if (card) card.remove();
+  updateConfirmSummary();
+}
+function toggleItem(type, i) {
+  var card = document.getElementById(type + "Card" + i);
+  var chk  = document.getElementById(type + "Check" + i);
+  if (card && chk) card.classList.toggle("excluded", !chk.checked);
+  updateConfirmSummary();
+}
+function updateConfirmSummary() {
+  var tasks    = document.querySelectorAll('[id^="taskCard"]');
+  var meetings = document.querySelectorAll('[id^="meetingCard"]');
+  var syncs    = document.querySelectorAll('[id^="syncCard"]');
+  var chkT = 0, chkM = 0, chkS = 0;
+  tasks.forEach(function(c) { if (!c.classList.contains("excluded")) chkT++; });
+  meetings.forEach(function(c) { if (!c.classList.contains("excluded")) chkM++; });
+  syncs.forEach(function(c) { if (!c.classList.contains("excluded")) chkS++; });
+  var parts = [];
+  if (chkT) parts.push(chkT + " 個任務");
+  if (chkM) parts.push(chkM + " 個會議");
+  if (chkS) parts.push(chkS + " 項協調通知");
+  document.getElementById("confirmSummary").textContent =
+    parts.length ? "即將執行：" + parts.join("、") : "請至少勾選一項";
+}
+
+// ── 確認送出 ─────────────────────────────────────────────────
+function confirmAll() {
+  var tasksToCreate   = collectTasks();
+  var meetingsToCreate = collectMeetings();
+  var syncsToSend     = collectSyncs();
+
+  if (!tasksToCreate.length && !meetingsToCreate.length && !syncsToSend.length) {
+    showError("請至少選擇一項任務、會議或協調通知"); return;
+  }
+
+  document.getElementById("confirmBtn").disabled = true;
+  document.getElementById("confirmBtn").textContent = "⏳ 送出中…";
+  hideError();
+
+  // 先建立任務 + 跨部門同步
+  var p1 = fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "confirmMeetingTasks",
+      tasks: tasksToCreate,
+      crossDeptSyncs: syncsToSend,
+      requesterLineId: userId,
+      senderName: userName,
+    }),
+  }).then(function(r) { return r.json(); });
+
+  // 再逐一建立會議（含 Calendar）
+  var meetingPromises = meetingsToCreate.map(function(m) {
+    return fetch(GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "createMeeting",
+        meeting: m,
+        organizerLineId: userId,
+      }),
+    }).then(function(r) { return r.json(); });
+  });
+
+  Promise.all([p1].concat(meetingPromises)).then(function(results) {
+    var taskResult   = results[0];
+    var taskCreated  = (taskResult.created || []).length;
+    var meetCreated  = results.slice(1).filter(function(r) { return r.ok; }).length;
+    var syncSent     = syncsToSend.length;
+
+    var parts = [];
+    if (taskCreated) parts.push("✅ 建立 " + taskCreated + " 個任務");
+    if (meetCreated) parts.push("📅 建立 " + meetCreated + " 個會議");
+    if (syncSent)    parts.push("🔗 發送 " + syncSent + " 項協調通知");
+
+    document.getElementById("doneSub").textContent = parts.join("　") || "操作完成";
+    showSection("done");
+  }).catch(function(err) {
+    showError("送出失敗：" + err.message);
+    document.getElementById("confirmBtn").disabled = false;
+    document.getElementById("confirmBtn").textContent = "✅ 確認送出並執行";
+  });
+}
+
+function collectTasks() {
+  var result = [];
+  document.querySelectorAll('[id^="taskCard"]').forEach(function(card) {
+    if (card.classList.contains("excluded")) return;
+    var i       = card.id.replace("taskCard", "");
+    var selEl   = document.getElementById("taskAssignee" + i);
+    var lineId  = selEl ? selEl.value : "";
+    var selName = selEl && selEl.selectedOptions[0] ? selEl.selectedOptions[0].dataset.name || "" : "";
+    result.push({
+      name:          (document.getElementById("taskName" + i) || {}).value || "",
+      dept:          (document.getElementById("taskDept" + i) || {}).value || "",
+      dueDate:       (document.getElementById("taskDue"  + i) || {}).value || null,
+      description:   (parsed.tasks[i] || {}).description || "",
+      requiredData:  (parsed.tasks[i] || {}).requiredData || "",
+      assigneeNames: selName ? [selName] : [],
+      managerLineId: lineId,
+    });
+  });
+  return result;
+}
+
+function collectMeetings() {
+  var result = [];
+  document.querySelectorAll('[id^="meetingCard"]').forEach(function(card) {
+    if (card.classList.contains("excluded")) return;
+    var i  = card.id.replace("meetingCard", "");
+    var dt = (document.getElementById("meetingDatetime" + i) || {}).value || "";
+    result.push({
+      title:         (document.getElementById("meetingTitle"    + i) || {}).value || "",
+      datetime:      dt.replace("T", " "),
+      location:      (document.getElementById("meetingLocation" + i) || {}).value || "",
+      agenda:        (parsed.meetings[i] || {}).agenda        || "",
+      attendeeDepts: (parsed.meetings[i] || {}).attendeeDepts || [],
+      attendeeNames: (parsed.meetings[i] || {}).attendeeNames || [],
+      attendeeEmails:  _getEmailsByNames((parsed.meetings[i] || {}).attendeeNames || []),
+      attendeeLineIds: _getLineIdsByNames((parsed.meetings[i] || {}).attendeeNames || []),
+    });
+  });
+  return result;
+}
+
+function collectSyncs() {
+  var result = [];
+  var origSyncs = parsed.crossDeptSyncs || [];
+  document.querySelectorAll('[id^="syncCard"]').forEach(function(card) {
+    if (card.classList.contains("excluded")) return;
+    var i    = card.id.replace("syncCard", "");
+    var sync = origSyncs[i] || {};
+    var ids  = _getLineIdsByDept(sync.toDept || "");
+    result.push({
+      fromDept:      sync.fromDept || "",
+      toDept:        sync.toDept   || "",
+      message:       sync.message  || "",
+      targetLineIds: ids,
+    });
+  });
+  return result;
+}
+
+// ── 成員比對工具 ─────────────────────────────────────────────
+function _getEmailsByNames(names) {
+  return names.map(function(name) {
+    var m = members.find(function(mb) {
+      return (mb.name || mb.displayName || "").indexOf(name) !== -1;
+    });
+    return m ? (m.email || "") : "";
+  }).filter(Boolean);
+}
+
+function _getLineIdsByNames(names) {
+  return names.map(function(name) {
+    var m = members.find(function(mb) {
+      return (mb.name || mb.displayName || "").indexOf(name) !== -1;
+    });
+    return m ? m.lineId : "";
+  }).filter(Boolean);
+}
+
+function _getLineIdsByDept(dept) {
+  if (!dept) return [];
+  return members
+    .filter(function(m) { return m.dept && m.dept.indexOf(dept) !== -1 && (m.role === "manager" || m.role === "admin"); })
+    .map(function(m) { return m.lineId; })
+    .filter(Boolean);
+}
+
+// ── UI 工具 ──────────────────────────────────────────────────
+function showSection(name) {
+  document.getElementById("inputSection").style.display   = name === "input"   ? "block" : "none";
+  document.getElementById("loadingSection").style.display = name === "loading"  ? "block" : "none";
+  document.getElementById("resultSection").style.display  = name === "result"   ? "block" : "none";
+  document.getElementById("doneSection").style.display    = name === "done"     ? "block" : "none";
+  if (name !== "result") document.getElementById("confirmFooter").style.display = "none";
+}
+function showError(msg) {
+  var el = document.getElementById("errorBox");
+  el.textContent = "⚠️ " + msg;
+  el.style.display = "block";
+}
+function hideError() {
+  document.getElementById("errorBox").style.display = "none";
+}
+function resetAll() {
+  parsed = { tasks: [], meetings: [], crossDeptSyncs: [] };
+  document.getElementById("meetingText").value = "";
+  document.getElementById("charCount").textContent = "0 字";
+  document.getElementById("confirmBtn").disabled = false;
+  document.getElementById("confirmBtn").textContent = "✅ 確認送出並執行";
+  hideError();
+  showSection("input");
+}
+function esc(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+</script>
+</body>
+</html>
