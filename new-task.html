@@ -183,6 +183,27 @@
   </div>
 
   <div class="card">
+    <label class="field-label">優先等級</label>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <label class="type-btn selected" id="lbl-pri-normal" onclick="setPriority('一般')">
+        <input type="radio" name="priority" value="一般" id="pri-normal" checked>
+        <strong>⚪ 一般</strong>
+        <div class="type-sub">正常流程處理</div>
+      </label>
+      <label class="type-btn" id="lbl-pri-urgent" onclick="setPriority('急件')">
+        <input type="radio" name="priority" value="急件" id="pri-urgent">
+        <strong>🟠 急件</strong>
+        <div class="type-sub">需優先處理</div>
+      </label>
+      <label class="type-btn" id="lbl-pri-critical" onclick="setPriority('緊急')">
+        <input type="radio" name="priority" value="緊急" id="pri-critical">
+        <strong>🔴 緊急</strong>
+        <div class="type-sub">立即處理</div>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
     <label class="field-label">任務類型 <span class="required">*</span></label>
     <div style="display:flex;gap:10px;margin-top:6px;">
       <label class="type-btn selected" id="lbl-report">
@@ -224,6 +245,14 @@
   <div class="card">
     <label class="field-label">群組公告通知 <span style="font-size:11px;font-weight:normal;color:#999;">（選填，任務建立/完成時推播給指定群組）</span></label>
     <div id="group-list"></div>
+  </div>
+
+  <div class="card">
+    <label class="field-label">知會對象 <span style="font-size:11px;font-weight:normal;color:#999;">（選填，任務建立後發送知會通知但無需回報）</span></label>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">適用：向上長官知悉、跨部門同步、董總交辦後照會</div>
+    <input type="text" class="search-box" id="cc-search" placeholder="🔍 搜尋知會對象…" oninput="filterCCSearch()" style="margin-bottom:8px;">
+    <div id="cc-list" style="max-height:180px;overflow-y:auto;border:1px solid #eee;border-radius:8px;padding:6px 8px;"></div>
+    <div style="font-size:12px;color:#888;margin-top:6px;">已選知會：<span id="cc-count">0 人</span></div>
   </div>
 
   <div class="card" id="reminder-card">
@@ -295,6 +324,7 @@
       document.getElementById("due-date").value = d.toISOString().split("T")[0];
 
       buildPicker(allMembers);
+      buildCCPicker(allMembers);
 
       // Load groups（失敗不阻擋主流程）
       try {
@@ -356,6 +386,38 @@
         + "<span style='font-size:12px;color:#aaa;'>請關閉後重新開啟，或聯繫管理員</span>"
         + "</div>";
     }
+  }
+
+  // ── 優先等級切換 ──────────────────────────────────────────
+  function setPriority(val) {
+    ["一般","急件","緊急"].forEach(function(v) {
+      var lbl = document.getElementById("lbl-pri-" + (v === "一般" ? "normal" : v === "急件" ? "urgent" : "critical"));
+      if (lbl) lbl.classList.toggle("selected", v === val);
+    });
+  }
+
+  // ── 知會對象 Picker ───────────────────────────────────────
+  function buildCCPicker(members) {
+    var container = document.getElementById("cc-list");
+    container.innerHTML = members.map(function(m) {
+      var tag = m.role === "admin" ? '<span class="mbr-tag tag-admin">管理員</span>'
+              : m.role === "manager" ? '<span class="mbr-tag tag-manager">主管</span>' : "";
+      return '<label class="mbr-item" id="ccrow-' + m.lineId + '">'
+           + '<input type="checkbox" class="cc-cb" data-id="' + m.lineId + '" data-name="' + esc(m.name) + '" onchange="updateCCCount()">'
+           + '<span class="mbr-name">' + esc(m.name) + ' <span style="color:#aaa;font-size:11px;">' + esc(m.dept || "") + '</span></span>'
+           + tag + '</label>';
+    }).join("");
+  }
+  function updateCCCount() {
+    var n = document.querySelectorAll(".cc-cb:checked").length;
+    document.getElementById("cc-count").textContent = n + " 人";
+  }
+  function filterCCSearch() {
+    var q = document.getElementById("cc-search").value.trim().toLowerCase();
+    allMembers.forEach(function(m) {
+      var row = document.getElementById("ccrow-" + m.lineId);
+      if (row) row.style.display = (!q || m.name.toLowerCase().includes(q)) ? "" : "none";
+    });
   }
 
   // ── 建立部門 / 成員選擇器 ─────────────────────────────────
@@ -538,6 +600,15 @@
       groupIds.push(cb.dataset.gid);
     });
 
+    // 收集優先等級
+    var priority = document.querySelector('input[name="priority"]:checked');
+    priority = priority ? priority.value : "一般";
+    if (priority === "一般") priority = "";
+
+    // 收集知會對象
+    var ccIds = [];
+    document.querySelectorAll(".cc-cb:checked").forEach(function(cb) { ccIds.push(cb.dataset.id); });
+
     try {
       var taskId = "T-" + Date.now();
       var url = GAS_URL
@@ -553,7 +624,9 @@
         + "&requiredData="     + enc(reqData)
         + "&notifyGroupIds="   + enc(groupIds.join(","))
         + "&taskType="         + enc(taskType)
-        + "&reminderSchedule=" + enc(isNotify ? "" : reminderSchedule);
+        + "&reminderSchedule=" + enc(isNotify ? "" : reminderSchedule)
+        + "&priority="         + enc(priority)
+        + "&ccLineIds="        + enc(ccIds.join(","));
 
       var res    = await fetch(url);
       var result = await res.json();
