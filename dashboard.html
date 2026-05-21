@@ -189,20 +189,28 @@ function loadBoard() {
 
 function renderAll(data) {
   var toSign    = data.toSign     || [];
+  var upcoming  = data.upcoming   || [];
   var pending   = data.pending    || [];
   var inProgress= data.inProgress || [];
   var overdue   = data.overdue    || [];
   var done      = data.done       || [];
 
-  setBadge("sign",    toSign.length,              "purple");
+  setBadge("sign",    toSign.length + upcoming.length, "purple");
   setBadge("todo",    pending.length + inProgress.length, "blue");
   setBadge("overdue", overdue.length,             "red");
   setBadge("done",    done.length,                "green");
 
-  // 待我簽核
-  renderPanel("sign", toSign.length === 0
-    ? emptyHTML("🎉", "沒有待審核的請示")
-    : toSign.map(renderSignItem).join(""));
+  // 待我簽核（含即將輪到我）
+  var signHTML = "";
+  if (toSign.length) {
+    signHTML += '<div class="section-label">待我審核（請盡快處理）</div>'
+      + toSign.map(renderSignItem).join("");
+  }
+  if (upcoming.length) {
+    signHTML += '<div class="section-label" style="margin-top:14px;">即將輪到我（前面關卡尚未完成）</div>'
+      + upcoming.map(renderUpcomingItem).join("");
+  }
+  renderPanel("sign", signHTML || emptyHTML("🎉", "沒有待審核或即將輪到的請示"));
 
   // 待辦任務（進行中 + 待辦）
   var todoHTML = "";
@@ -264,6 +272,27 @@ function renderSignItem(req) {
     '  </div>',
     '  <div class="item-action">',
     '    <button class="btn-sm btn-purple" onclick="openReview(\'' + esc(req.requestId) + '\')">審核請示</button>',
+    '  </div>',
+    '</div>',
+  ].join("\n");
+}
+
+function renderUpcomingItem(req) {
+  var myLevelTxt = "我是第 " + req.myLevel + " 關 / 共 " + req.totalLevels + " 關";
+  var blocker    = "目前卡在第 " + req.level + " 關（" + esc(req.currentApprover || "—") + "）";
+  return [
+    '<div class="item" style="border-left-color:#6A1B9A;background:#FAF5FC;">',
+    '  <div class="item-title">🕒 ' + esc(req.subject) + '</div>',
+    '  <div class="item-meta">',
+    '    <span>👤 ' + esc(req.requesterName) + '</span>',
+    '    <span>🔗 ' + myLevelTxt + '</span>',
+    '    <span>📅 ' + esc(req.createdTime) + '</span>',
+    '  </div>',
+    '  <div class="item-meta" style="color:#6A1B9A;">',
+    '    <span>⏳ ' + blocker + '</span>',
+    '  </div>',
+    '  <div class="item-action">',
+    '    <button class="btn-sm btn-outline" onclick="openReview(\'' + esc(req.requestId) + '\')">查看詳情</button>',
     '  </div>',
     '</div>',
   ].join("\n");
