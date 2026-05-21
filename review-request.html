@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>審核請示</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="config.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -173,7 +174,7 @@
 </div>
 
 <script>
-const GAS = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
+const GAS = window.GAS_URL;
 let myId = "", myName = "";
 let reqData = null;
 let membersMap = {};
@@ -188,7 +189,7 @@ async function init() {
       "<p style='padding:40px;text-align:center;color:#C62828;'>❌ 缺少請示 ID</p>";
     return;
   }
-  await liff.init({ liffId: "2009974832-1tuzOcJQ" });
+  await liff.init({ liffId: window.LIFF_ID });
   if (!liff.isLoggedIn()) { liff.login(); return; }
   const prof = await liff.getProfile();
   myId   = prof.userId;

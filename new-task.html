@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>新增任務 — 歐萊德小管家</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="config.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -288,7 +289,7 @@
 </div>
 
 <script>
-  var GAS_URL    = "https://script.google.com/macros/s/AKfycbx6_x9UZIhKAidFXzuXzY7UVEb4-s0_NHXuQIb5hQKWA-1p9aaq7VXK77DizT1UCAXL/exec";
+  var GAS_URL    = window.GAS_URL;
   var userId;
   var allMembers  = [];
   var grouped     = {};   // dept -> [member]
@@ -299,7 +300,7 @@
 
   async function init() {
     try {
-      await liff.init({ liffId: "2009974832-1tuzOcJQ" });
+      await liff.init({ liffId: window.LIFF_ID });
       if (!liff.isLoggedIn()) { liff.login(); return; }
       userId = liff.getContext().userId;
 

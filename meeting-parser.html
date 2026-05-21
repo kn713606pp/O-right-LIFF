@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI 會議解析</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="config.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -363,14 +364,14 @@ var members  = [];
 var parsed   = { tasks: [], meetings: [], crossDeptSyncs: [] };
 
 // ── LIFF 初始化 ──────────────────────────────────────────────
-liff.init({ liffId: "2009974832-1tuzOcJQ" }).then(function() {
+liff.init({ liffId: window.LIFF_ID }).then(function() {
   if (!liff.isLoggedIn()) { liff.login(); return; }
   return liff.getProfile();
 }).then(function(profile) {
   if (!profile) return;
   userId   = profile.userId;
   userName = profile.displayName;
-  GAS_URL  = "https://script.google.com/macros/s/14b4a0IPn-N1l2C8Qt-k6YqDVSRx5MlAa-mqM14LI9aDsqt6nQy5Q8_8q/exec";
+  GAS_URL  = window.GAS_URL;
 
   // 載入成員清單（用於指派）
   fetch(GAS_URL + "?action=getMembersList")

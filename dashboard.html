@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>我的待辦看板</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="config.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #F0F4F8; color: #333; }
@@ -146,8 +147,8 @@
 <div id="panel-done"    class="panel"></div>
 
 <script>
-var GAS_URL = "https://script.google.com/macros/s/14b4a0IPn-N1l2C8Qt-k6YqDVSRx5MlAa-mqM14LI9aDsqt6nQy5Q8_8q/exec";
-var LIFF_ID = "2009974832-1tuzOcJQ";
+var GAS_URL = window.GAS_URL;
+var LIFF_ID = window.LIFF_ID;
 var userId  = "";
 var board   = {};
 
