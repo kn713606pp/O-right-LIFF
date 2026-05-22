@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>歐萊德 新人報到手冊</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#1f5f3a; --green-d:#164028; --green-l:#4a9d6e; --mint:#e8f3ec;
+    --accent:#9eccb4; --ink:#1f2a24; --grey:#5a6b62; --line:#dbe6df;
+    --red:#c0392b; --red-bg:#fdecea; --bg:#f4f7f5; --card:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Noto Sans TC','Microsoft JhengHei',sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.7; font-size:16px;
+  }
+  /* Header */
+  header{
+    background:linear-gradient(135deg,var(--green) 0%,var(--green-d) 100%);
+    color:#fff; padding:38px 24px 30px; text-align:center;
+  }
+  header .logo{font-size:13px;letter-spacing:3px;opacity:.85;font-weight:500}
+  header h1{font-size:34px;font-weight:900;margin:8px 0 6px;letter-spacing:1px}
+  header p{opacity:.9;font-size:15px;max-width:720px;margin:0 auto}
+  /* Sticky nav + search */
+  .bar{
+    position:sticky; top:0; z-index:50; background:#fff;
+    border-bottom:2px solid var(--green); box-shadow:0 2px 10px rgba(0,0,0,.06);
+    padding:12px 16px;
+  }
+  .bar .inner{max-width:1080px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  #search{
+    flex:1; min-width:220px; padding:11px 16px; border:2px solid var(--line);
+    border-radius:30px; font-size:15px; font-family:inherit; outline:none;
+  }
+  #search:focus{border-color:var(--green-l)}
+  .nav{display:flex;flex-wrap:wrap;gap:6px}
+  .nav a{
+    font-size:13px; text-decoration:none; color:var(--green);
+    background:var(--mint); padding:6px 11px; border-radius:20px; font-weight:500;
+    white-space:nowrap;
+  }
+  .nav a:hover{background:var(--green);color:#fff}
+  /* Layout */
+  main{max-width:1080px;margin:0 auto;padding:26px 16px 60px}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:24px 26px; margin-bottom:22px; box-shadow:0 1px 4px rgba(0,0,0,.04);
+  }
+  .card h2{
+    font-size:22px; color:var(--green); font-weight:900; margin-bottom:4px;
+    display:flex; align-items:center; gap:9px;
+  }
+  .card .sub{color:var(--grey);font-size:14px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;margin-top:6px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:15px}
+  th{background:var(--mint);color:var(--green-d);font-weight:700;font-size:14px}
+  tr:last-child td{border-bottom:none}
+  td.q{font-weight:700;color:var(--ink);width:26%}
+  td.src{color:var(--grey);font-size:13px;width:24%}
+  .pill{display:inline-block;background:var(--mint);color:var(--green-d);font-size:12px;font-weight:700;padding:2px 9px;border-radius:12px;margin-right:6px}
+  /* Emergency */
+  .emerg{background:var(--red-bg);border:1.5px solid var(--red);border-radius:14px;padding:18px 22px;margin-bottom:22px}
+  .emerg h2{color:var(--red);font-size:19px;font-weight:900;margin-bottom:8px}
+  .emerg ul{margin-left:20px}
+  .emerg li{margin-bottom:5px}
+  /* checklist / generic lists */
+  .lead{background:var(--mint);border-left:4px solid var(--green-l);padding:14px 18px;border-radius:8px;margin-bottom:16px;font-size:14.5px;color:var(--green-d)}
+  ul.clean{margin-left:20px}
+  ul.clean li{margin-bottom:6px}
+  .modules{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+  .mod{background:var(--mint);border-radius:10px;padding:11px 13px;font-size:14px}
+  .mod b{color:var(--green-d)}
+  .mod span{display:block;color:var(--grey);font-size:12.5px;margin-top:2px}
+  .nores{display:none;text-align:center;color:var(--grey);padding:40px;font-size:16px}
+  footer{text-align:center;color:var(--grey);font-size:12.5px;padding:24px 16px;border-top:1px solid var(--line)}
+  .tag{display:inline-block;font-size:11px;color:#fff;background:var(--green-l);padding:1px 7px;border-radius:8px;margin-left:6px;vertical-align:middle}
+  /* print */
+  @media print{
+    .bar{position:static;box-shadow:none}
+    .nav,#search{display:none}
+    body{background:#fff;font-size:12px}
+    .card,.emerg{break-inside:avoid;box-shadow:none;border-color:#ccc}
+    header{background:var(--green)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    th{background:#eee!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @page{size:A4;margin:14mm}
+  }
+  @media(max-width:640px){
+    td.q,td.src{width:auto}
+    header h1{font-size:26px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">O'RIGHT 歐萊德國際</div>
+  <h1>🌱 新人報到手冊</h1>
+  <p>歡迎加入歐萊德！這份手冊把你報到後最常遇到的問題整理成十大類——用上方搜尋框打關鍵字（如「請假」「報帳」「停車」），或點分類直接跳。查不到就問你的綠色幼苗園丁。</p>
+</header>
+
+<div class="bar">
+  <div class="inner">
+    <input id="search" type="text" placeholder="🔍 打關鍵字查詢，例如：請假、報帳、停車、VPN、團保…" oninput="filterFAQ()">
+    <nav class="nav">
+      <a href="#start">報到首日</a>
+      <a href="#train">新人訓</a>
+      <a href="#sprout">幼苗園丁</a>
+      <a href="#a">人資</a>
+      <a href="#b">行政</a>
+      <a href="#c">財務</a>
+      <a href="#d">職安</a>
+      <a href="#e">認識公司</a>
+      <a href="#f">資訊IT</a>
+      <a href="#g">績效週報</a>
+      <a href="#h">保險福利</a>
+      <a href="#i">場域</a>
+      <a href="#j">誠信合規</a>
+      <a href="#who">找誰</a>
+    </nav>
+  </div>
+</div>
+
+<main>
+
+  <!-- Emergency -->
+  <div class="emerg" data-faq>
+    <h2>🚨 遇到緊急狀況怎麼辦（先記這個）</h2>
+    <ul>
+      <li><b>受傷／職災</b>：立即通知<b>主管＋職業安全衛生室</b>，依意外調查程序處理；輕傷也要報。</li>
+      <li><b>火災／地震／疏散</b>：依緊急應變程序就近疏散；<b>滅火器、急救箱、逃生路線位置</b>請園丁／職安室帶你認一次。</li>
+      <li>依據：ISO45001 SP-07 緊急應變程序。</li>
+    </ul>
+  </div>
+
+  <!-- Day 1 -->
+  <section class="card" id="start" data-faq>
+    <h2>✅ 報到第一天 checklist</h2>
+    <table>
+      <tr><th>項目</th><th>說明</th><th>找誰／依據</th></tr>
+      <tr><td class="q">帶齊報到文件</td><td>共 14 項（身分證影本、存摺影本、學經歷證件、體檢報告、印章、相片等）</td><td class="src">員工任用管理辦法 HQ-11-001</td></tr>
+      <tr><td class="q">簽勞動契約書</td><td>HR-11-010 勞動契約書；口頭承諾即具法律效力，看清楚再簽</td><td class="src">招募任用作業規範</td></tr>
+      <tr><td class="q">帳號開通</td><td>公司 email、ERP／鼎新、EasyFlow、打卡（指紋／筋斗雲）、電腦／網路</td><td class="src">資通訊整合中心</td></tr>
+      <tr><td class="q">認識綠色幼苗園丁</td><td>單位指派的學長姊，試用 3 個月帶你（見下方）</td><td class="src">單位主管／人資</td></tr>
+      <tr><td class="q">加入通訊群組</td><td>園丁會把你加進部門 LINE／Skype 群並介紹</td><td class="src">綠色幼苗關懷計畫</td></tr>
+      <tr><td class="q">排新人訓課程</td><td>12 模組（見下方課程地圖）</td><td class="src">人資部教育訓練專區</td></tr>
+      <tr><td class="q">試用期</td><td><b>3 個月</b>；期間有綠色幼苗關懷與工作崗位訓練紀錄</td><td class="src">工作規則 HQ-11-004</td></tr>
+    </table>
+  </section>
+
+  <!-- Training map -->
+  <section class="card" id="train" data-faq>
+    <h2>🎓 新人訓課程地圖</h2>
+    <div class="sub">報到後依排程上課，多數附 PDF／影片講義。</div>
+    <div class="modules">
+      <div class="mod"><b>1-1 一般安全衛生教育訓練</b><span>職安（法定必修）</span></div>
+      <div class="mod"><b>1-2 綠建築總部行政導覽</b><span>行政・環境</span></div>
+      <div class="mod"><b>1-3 基本智慧財產權</b><span>法務（著作權、商標）</span></div>
+      <div class="mod"><b>1-4 綠建築總部使用暨環境教育要點</b><span>環境教育</span></div>
+      <div class="mod"><b>1-5 公司作業管理規範</b><span>制度</span></div>
+      <div class="mod"><b>1-6 EasyFlow 系統說明</b><span>請假／打卡／報支</span></div>
+      <div class="mod"><b>2-1 管理系統介紹</b><span>ISO 體系</span></div>
+      <div class="mod"><b>2-2 品牌課程</b><span>品牌・綠皮書</span></div>
+      <div class="mod"><b>2-3 永續課程</b><span>ESG・碳足跡</span></div>
+      <div class="mod"><b>2-4 危害通識</b><span>職安（化學品）</span></div>
+      <div class="mod"><b>3-1 髮膚理論</b><span>產品專業</span></div>
+      <div class="mod"><b>3-2 綠色產品介紹</b><span>產品</span></div>
+      <div class="mod"><b>＋ 員購註冊・新禮儀運動</b><span>迎賓區／後門上下班問候</span></div>
+    </div>
+  </section>
+
+  <!-- Green sprout -->
+  <section class="card" id="sprout" data-faq>
+    <h2>🌱 綠色幼苗關懷計畫（師徒制）</h2>
+    <div class="lead"><b>新進人員＝綠色幼苗，帶你的學長姊＝幼苗園丁。</b></div>
+    <ul class="clean">
+      <li><b>試用期 3 個月</b>，由單位主管指派一位（非主管本人）正向、資深或專業的同仁當你的幼苗園丁。</li>
+      <li>園丁職責：把你加入群組並介紹、關懷你的心情與工作、帶你熟悉環境、協助達成工作目標。</li>
+      <li><b>每月（到職週月）至少 2 次晤談</b>，園丁填「綠色幼苗關懷報告」（1 個月、2-3 個月兩份）交主管審後送人資。</li>
+      <li>你順利通過試用考核且園丁盡責 → 主管應提報園丁<b>記嘉獎一支</b>。</li>
+      <li>人資每半年辦一次「園丁交流會議」。配套：<b>綠色生活公約</b>（須了解並落實）。</li>
+    </ul>
+  </section>
+
+  <!-- A 人資 -->
+  <section class="card" id="a" data-faq>
+    <h2><span class="pill">A</span>👤 人資 HR</h2>
+    <table>
+      <tr><th>你的問題</th><th>重點答案</th><th>依據</th></tr>
+      <tr><td class="q">試用期多久？</td><td>3 個月，期間有綠色幼苗關懷＋工作崗位訓練紀錄表（QR-11-023）</td><td class="src">工作規則</td></tr>
+      <tr><td class="q">怎麼請假？幾種假？</td><td>18 種假別；用 EasyFlow 線上申請；病假證明、特休天數依年資</td><td class="src">請假辦法 HQ-11-008</td></tr>
+      <tr><td class="q">怎麼打卡？忘記打怎麼辦？</td><td>指紋／筋斗雲打卡；補刷卡 EasyFlow 申請、<b>每月上限 2 次</b>；代打卡記大過</td><td class="src">出勤管理辦法 HQ-11-006</td></tr>
+      <tr><td class="q">薪水結構？什麼時候發？</td><td>本薪＋伙食津貼（1,800／2,400）；無全勤獎金；加班費另計；<b>上月薪資當月 6 號後</b>可在 EasyFlow 查</td><td class="src">薪資結構</td></tr>
+      <tr><td class="q">加班規定？</td><td>月上限 46／54 小時；調休 1:1；餐費津貼 50／100／200 三級；加班簽至上一層主管</td><td class="src">加班管理</td></tr>
+      <tr><td class="q">請假／打卡／查薪資／補刷卡怎麼線上操作？</td><td>登入 EasyFlow（flow.oright.com.tw，帳號＝員編）→ ESS PLUS 模組 → 考勤管理／薪資管理</td><td class="src">EasyFlow 操作指引</td></tr>
+      <tr><td class="q">教育訓練有哪些？</td><td>5 類訓練體系；法定課程不得拒絕；先上新人訓 12 模組</td><td class="src">教育訓練程序 QP-11-001</td></tr>
+      <tr><td class="q">英語要求？有獎勵嗎？</td><td>英語為第二官方語言；多益門檻（一層 650／二層 550／三層 450）；達標有獎勵金</td><td class="src">國際語言溝通力 HQ-11-010</td></tr>
+      <tr><td class="q">可以參加社團嗎？</td><td>4 類社團；每季 NT$200／人補助；每人最多同時 2 個</td><td class="src">員工社團辦法 HQ-11-012</td></tr>
+      <tr><td class="q">獎懲怎麼算？</td><td>四級獎勵（嘉獎／小功／大功／獎勵金）；五級懲處；功過相抵</td><td class="src">獎懲制度</td></tr>
+      <tr><td class="q">晉升條件？</td><td>現職滿 1 年＋連 2 年優等＋無大過；調遷後 3 個月考核</td><td class="src">晉升調遷制度</td></tr>
+      <tr><td class="q">退休制度？</td><td>舊制（2 基數／年上限 45）／新制（公司提撥 6%）</td><td class="src">退休制度</td></tr>
+      <tr><td class="q">遇到性騷擾怎麼辦？</td><td>有申訴委員會；2 個月結案、20 天申覆期</td><td class="src">性騷擾防治辦法</td></tr>
+    </table>
+  </section>
+
+  <!-- B 行政 -->
+  <section class="card" id="b" data-faq>
+    <h2><span class="pill">B</span>🏢 行政總務</h2>
+    <table>
+      <tr><th>你的問題</th><th>重點答案</th><th>依據</th></tr>
+      <tr><td class="q">員購怎麼買？折扣？</td><td>O'right 員購平台；<b>5 折</b>、每月 3 萬限額，超額需簽核</td><td class="src">員購服務辦法與平台</td></tr>
+      <tr><td class="q">員工福利有哪些？</td><td>生日卡禮金（級距）、達標旅遊、年節贈禮、春酒</td><td class="src">員工福利作業流程</td></tr>
+      <tr><td class="q">停車位怎麼申請？充電樁？</td><td>綠建築總部停車管理辦法；1-13 號車位留用名單、充電樁申請</td><td class="src">停車管理辦法</td></tr>
+      <tr><td class="q">會議室怎麼借？設備怎麼用？</td><td>7 間會議室（EARTH／HOME／SEED 等）；預約登記＋設備 SOP</td><td class="src">會議室管理與設備操作</td></tr>
+      <tr><td class="q">訪客怎麼登記帶入？</td><td>出入紀錄／健康聲明／來賓證 SOP</td><td class="src">訪客進出管制作業</td></tr>
+      <tr><td class="q">出差／公務怎麼派車訂機票？</td><td>和雲派車價目、機票、公務車、eTag</td><td class="src">派車機票與公務車作業</td></tr>
+      <tr><td class="q">公文／申請表去哪找？</td><td>公文收發流程＋十餘種申請登記表</td><td class="src">文件收發與行政申請作業</td></tr>
+      <tr><td class="q">跟董總／主管請示有規矩嗎？</td><td><b>董總群組請示禁私訊</b>；8 類請示模板；任用須請示董事長</td><td class="src">通訊軟體請示規範</td></tr>
+      <tr><td class="q">LINE 群組怎麼分？</td><td>7 類群組顏色編碼（紅澄黃綠）＋管理員制</td><td class="src">LINE 群組命名規則</td></tr>
+      <tr><td class="q">餐廳／冰箱使用規矩？</td><td>有機蔬食餐廳輪值制；冰箱「北極／南極／員工專用」分區</td><td class="src">有機蔬食餐廳要點</td></tr>
+      <tr><td class="q">帳號密碼忘了找誰？</td><td>帳密由行政管理中心索引管理（密碼不外流，循正式管道）</td><td class="src">行政管理中心</td></tr>
+      <tr><td class="q">其他行政疑問</td><td>先查「行政總務部 100 題常見問題題庫」</td><td class="src">行政 100 題題庫</td></tr>
+    </table>
+  </section>
+
+  <!-- C 財務 -->
+  <section class="card" id="c" data-faq>
+    <h2><span class="pill">C</span>💰 財務（報帳／請款）</h2>
+    <div class="sub">付款時程與門檻以財務部最新公告為準。</div>
+    <table>
+      <tr><th>你的問題</th><th>重點答案</th><th>依據</th></tr>
+      <tr><td class="q">我墊錢了怎麼報？多久拿到？</td><td>員工請款用<b>請款單</b>（填員工編號）；<b>當週送、次週三付款</b></td><td class="src">費用報支與請款流程</td></tr>
+      <tr><td class="q">國內公出交通費怎麼報？</td><td>國內出差公出費用報支表＋E-tag 明細（螢光筆標）；油資 5 元／KM；<b>月結、每月第三週週三付款</b></td><td class="src">費用報支與請款流程</td></tr>
+      <tr><td class="q">國外出差怎麼報？</td><td>國外報支表＋旅行業代收轉代付收據＋登機證＋電子機票＋出差任務報告書；<b>當週送次週三付</b></td><td class="src">費用報支與請款流程</td></tr>
+      <tr><td class="q">發票／收據怎麼貼？</td><td>A4 二手紙正反貼、同類一起；電子發票複印二份勿撕開；收據勿寫西元年</td><td class="src">憑證黏貼說明</td></tr>
+      <tr><td class="q">為什麼不能用立可白／擦擦筆？</td><td><b>ISO 文件不可塗改</b>；錯了重開或蓋負責人小章</td><td class="src">憑證黏貼通則</td></tr>
+      <tr><td class="q">月結費用何時送？</td><td><b>次月 5 號前</b>送財務部</td><td class="src">費用報支與請款流程</td></tr>
+      <tr><td class="q">這筆錢誰能核准？</td><td>依金額查核決權限表（庶務 ≤1,500 三層…30,001-10 萬副總…）</td><td class="src">核決權限表 v3.0</td></tr>
+      <tr><td class="q">結婚／生育／喪葬有補助嗎？</td><td>特支費給付標準（5 大給付）</td><td class="src">特支費給付標準</td></tr>
+    </table>
+  </section>
+
+  <!-- D 職安 -->
+  <section class="card" id="d" data-faq>
+    <h2><span class="pill">D</span>🦺 職業安全衛生</h2>
+    <table>
+      <tr><th>你的問題</th><th>重點答案</th><th>依據</th></tr>
+      <tr><td class="q">新人一定要上的安全課？</td><td><b>一般安全衛生教育訓練（法定必修）＋危害通識</b></td><td class="src">新人訓 1-1、2-4</td></tr>
+      <tr><td class="q">個人防護具（PPE）哪裡領、何時戴？</td><td>依 PPE 辦法；特定作業強制（如報廢液體傾倒戴護目鏡）</td><td class="src">ISO45001 SQ-07 PPE 辦法</td></tr>
+      <tr><td class="q">受傷／職災怎麼通報？</td><td>依意外調查／緊急應變程序；公傷假由總經理核</td><td class="src">ISO45001 SP-07・職安室</td></tr>
+      <tr><td class="q">化學品怎麼安全使用？</td><td>危害通識＋化學品辦法；看 SDS</td><td class="src">ISO45001 SQ-07 化學品</td></tr>
+      <tr><td class="q">EasyFlow 怎麼操作（請假／打卡／查薪資／補刷卡）？</td><td>登入 flow.oright.com.tw（帳號＝員編）；ESS PLUS 模組 → 考勤管理／薪資管理</td><td class="src">EasyFlow 操作指引</td></tr>
+      <tr><td class="q">公司有哪些 ISO 系統？</td><td>9001／14001／22716／45001／50001／17025／11930／14064-1＋TIPS</td><td class="src">ISO 管理系統組合</td></tr>
+    </table>
+  </section>
+
+  <!-- E 認識公司 -->
+  <section class="card" id="e" data-faq>
+    <h2><span class="pill">E</span>🏢 認識公司（文化／願景／組織）</h2>
+    <div class="sub">歐萊德是使命驅動的永續美妝公司——懂「為何而做」比規則更重要。</div>
+    <table>
+      <tr><th>你想知道</th><th>重點</th><th>哪裡學更多</th></tr>
+      <tr><td class="q">這是什麼公司？</td><td>歐萊德國際（O'right），2002 成立、龍潭<b>綠建築 GMP 廠</b>、約 262 人、銷 43 國；台灣永續美妝代表</td><td class="src">新人訓 2-2 品牌</td></tr>
+      <tr><td class="q">公司的使命與成就？</td><td>去石化、<b>連年碳中和</b>、100% 綠電（RE100 台灣第一）、SBTi 1.5°C、TNFD 全球首批；《解凍格陵蘭》、綠沙龍運動</td><td class="src">新人訓 2-3 永續</td></tr>
+      <tr><td class="q">品牌怎麼分？</td><td>雙線：消費線（溫柔生活者）＋ <b>PRO 沙龍專業線</b>；共享永續哲學、分離語言</td><td class="src">品牌綠皮書</td></tr>
+      <tr><td class="q">員工要落實什麼？</td><td><b>綠色生活公約</b>（節能減廢、綠色行為）；新禮儀運動</td><td class="src">綠色生活公約</td></tr>
+      <tr><td class="q">組織長怎樣？</td><td>雙事業群＋支援單位＋10+ 委員會；治理：投資會 → 董事會 → 董事長 → 副總</td><td class="src">2026 組織圖</td></tr>
+      <tr><td class="q">誰是誰？</td><td><b>葛望平</b>（創辦人／董事長・葛董）、<b>蔡怡穎</b>（總經理・蔡總）、<b>蔡倉吉</b>（副總・品質長）、<b>陳木雄</b>（三中心總監）及各部門主管</td><td class="src">新人訓・組織圖</td></tr>
+    </table>
+  </section>
+
+  <!-- F IT -->
+  <section class="card" id="f" data-faq>
+    <h2><span class="pill">F</span>💻 資訊系統與資安</h2>
+    <table>
+      <tr><th>你的問題</th><th>重點答案</th><th>依據</th></tr>
+      <tr><td class="q">報到要開哪些帳號？</td><td>Email（可 Gmail 收信）、Cosmos ERP（鼎新）、EasyFlow、雲端硬碟 G:（Google）、打卡、Portal</td><td class="src">資訊系統與報修指引</td></tr>
+      <tr><td class="q">電腦／印表機／網路壞了找誰？</td><td>填<b>資通訊設備報修單</b>（Google 表單）；要裝軟體／開權限填<b>資訊服務需求單</b></td><td class="src">資訊系統與報修指引</td></tr>
+      <tr><td class="q">在家怎麼連公司內網？</td><td>裝 <b>SSL VPN</b>（WIN／MAC／iOS 安裝說明在資通訊）</td><td class="src">資通訊整合中心</td></tr>
+      <tr><td class="q">資安要注意什麼？</td><td>帳密不外借、個資／營業秘密依權責、對董總請示走群組禁私訊、工作檔放 G: 雲端硬碟</td><td class="src">資安基本守則</td></tr>
+    </table>
+  </section>
+
+  <!-- G 績效週報 -->
+  <section class="card" id="g" data-faq>
+    <h2><span class="pill">G</span>📊 績效、考核與週報文化</h2>
+    <div class="sub">歐萊德的核心節奏是<b>週報</b>——新人很快就要開始寫，越早懂越好。</div>
+    <table>
+      <tr><th>你想知道</th><th>重點</th><th>依據</th></tr>
+      <tr><td class="q">試用期怎麼評？</td><td>3 個月；園丁每月 2 次晤談填綠色幼苗關懷報告（1M／2-3M）；通過考核才轉正</td><td class="src">綠色幼苗關懷計畫</td></tr>
+      <tr><td class="q">我要寫週報嗎？</td><td><b>要。</b>全公司每週寫工作週報 → 主管／副總書面回饋 → 改善的閉環，是公司標準制度</td><td class="src">週報管理回饋閉環</td></tr>
+      <tr><td class="q">週報怎麼寫？</td><td>完成事項／進行中／卡點／<b>跨部門協作</b>／待追蹤承諾與截止日／需上級決策</td><td class="src">週報標準框架</td></tr>
+      <tr><td class="q">績效考核制度？</td><td>年度績效考核＋教育訓練；晉升＝現職滿 1 年＋連 2 年優等＋無大過</td><td class="src">晉升調遷制度</td></tr>
+      <tr><td class="q">蓋洛普優勢測驗？</td><td>公司用 <b>Gallup CliftonStrengths 34 天賦</b>幫你認識自己優勢（報到期間做）</td><td class="src">蓋洛普優勢測驗</td></tr>
+    </table>
+  </section>
+
+  <!-- H 保險福利 -->
+  <section class="card" id="h" data-faq>
+    <h2><span class="pill">H</span>🛡️ 保險與福委會福利</h2>
+    <table>
+      <tr><th>你的問題</th><th>重點答案</th><th>依據</th></tr>
+      <tr><td class="q">勞健保怎麼保？</td><td>報到即投保；相關文件含於 14 項報到文件</td><td class="src">任用管理辦法</td></tr>
+      <tr><td class="q">公司有團體保險嗎？理賠？</td><td>公司有投保團保；保障內容與理賠<b>問人資</b>（理賠單據流程）</td><td class="src">人資部</td></tr>
+      <tr><td class="q">福委會有什麼福利？</td><td><b>員工福利卡</b>、特約商店優惠、員工旅遊、讀書會、生日／婚喪喜慶禮金</td><td class="src">職工福利委員會</td></tr>
+      <tr><td class="q">結婚／生育／喪葬／急難補助？</td><td>特支費給付標準（5 大給付）</td><td class="src">特支費給付標準</td></tr>
+      <tr><td class="q">退休金？</td><td>勞退新制公司提撥 6%（舊制 2 基數／年上限 45）</td><td class="src">退休制度</td></tr>
+    </table>
+  </section>
+
+  <!-- I 場域 -->
+  <section class="card" id="i" data-faq>
+    <h2><span class="pill">I</span>📍 場域與環境（東西在哪）</h2>
+    <table>
+      <tr><th>你想找</th><th>重點</th><th>依據</th></tr>
+      <tr><td class="q">辦公位置／樓層</td><td>龍潭綠建築總部 2F／3F；隔櫃配置圖可參考</td><td class="src">公共區域配置圖</td></tr>
+      <tr><td class="q">會議室</td><td>7 間（EARTH／HOME／SEED 等），需預約</td><td class="src">會議室管理</td></tr>
+      <tr><td class="q">餐廳／冰箱</td><td>有機蔬食餐廳，輪值制；冰箱分「北極／南極／員工專用」</td><td class="src">有機蔬食餐廳要點</td></tr>
+      <tr><td class="q">停車／充電</td><td>綠建築總部停車管理辦法</td><td class="src">停車管理辦法</td></tr>
+      <tr><td class="q">上下班禮儀</td><td><b>新禮儀運動</b>（迎賓區／後門上下班問候），新人訓 1-2 行政導覽會帶</td><td class="src">新人訓 1-2</td></tr>
+    </table>
+  </section>
+
+  <!-- J 誠信合規 -->
+  <section class="card" id="j" data-faq>
+    <h2><span class="pill">J</span>⚖️ 誠信、保密與合規</h2>
+    <table>
+      <tr><th>你的問題</th><th>重點答案</th><th>依據</th></tr>
+      <tr><td class="q">我做的東西算誰的？</td><td><b>職務上完成的著作／發明歸公司</b>；智財員工有特別規定（離職管控）</td><td class="src">離職管理辦法（智財特規）</td></tr>
+      <tr><td class="q">保密義務？</td><td>營業秘密與個資依權責使用、不得外洩；系統登入即受個資保護宣告約束</td><td class="src">資安基本守則</td></tr>
+      <tr><td class="q">誠信／反貪腐／利益衝突？</td><td>公司有誠信經營與反貪腐治理規範</td><td class="src">永續報告書（G 治理）</td></tr>
+      <tr><td class="q">遇到性騷擾？</td><td>有申訴委員會；2 個月結案、20 天申覆期</td><td class="src">性騷擾防治辦法</td></tr>
+      <tr><td class="q">跟主管／董總溝通有規矩？</td><td>董總群組請示<b>禁私訊</b>；8 類請示模板</td><td class="src">通訊軟體請示規範</td></tr>
+    </table>
+  </section>
+
+  <!-- 找誰 -->
+  <section class="card" id="who" data-faq>
+    <h2>🧭 「找誰」快速對照</h2>
+    <table>
+      <tr><th>我要…</th><th>找這個單位</th></tr>
+      <tr><td class="q">開通帳號／email／網路／電腦</td><td>資通訊整合中心</td></tr>
+      <tr><td class="q">報帳／請款／匯款／發票問題</td><td>財務暨投資管理中心</td></tr>
+      <tr><td class="q">請假／打卡／薪資／教育訓練／勞健保</td><td>人資部（人才發展中心）</td></tr>
+      <tr><td class="q">員購／停車／會議室／訪客／派車／福利／餐廳</td><td>行政總務部</td></tr>
+      <tr><td class="q">安全衛生／PPE／職災／健檢／EasyFlow 操作</td><td>職業安全衛生室</td></tr>
+      <tr><td class="q"><b>受傷／火災／緊急狀況</b></td><td><b>立即找主管＋職業安全衛生室</b></td></tr>
+      <tr><td class="q">員工福利卡／特約商店／員工旅遊／讀書會</td><td>職工福利委員會</td></tr>
+      <tr><td class="q">設備報修／裝軟體／VPN／帳號</td><td>資通訊整合中心</td></tr>
+      <tr><td class="q">智財／合約／法律</td><td>法務部</td></tr>
+      <tr><td class="q">認識公司／願景／組織</td><td>新人訓課程＋本手冊 E 區</td></tr>
+      <tr><td class="q">工作上的大小事、心情</td><td>你的<b>綠色幼苗園丁</b></td></tr>
+    </table>
+  </section>
+
+  <div class="nores" id="nores">查無相符項目，換個關鍵字，或直接問你的綠色幼苗園丁／人資 🙂</div>
+
+</main>
+
+<footer>
+  歐萊德國際股份有限公司 ｜ 新人報到手冊（對外版）｜ 內容如有更新以各單位最新公告為準<br>
+  本手冊為導引用途，正式規章與表單以公司文管系統公告版本為準。
+</footer>
+
+<script>
+function filterFAQ(){
+  var kw = document.getElementById('search').value.trim().toLowerCase();
+  var blocks = document.querySelectorAll('[data-faq]');
+  var anyVisible = false;
+  blocks.forEach(function(block){
+    if(!kw){ block.style.display=''; restoreRows(block); anyVisible=true; return; }
+    var rows = block.querySelectorAll('tr');
+    var blockHit = block.innerText.toLowerCase().indexOf(kw) !== -1;
+    if(rows.length>1){
+      // table block: show only matching rows (keep header)
+      var rowHit=false;
+      rows.forEach(function(r,i){
+        if(i===0){ r.style.display=''; return; } // header
+        if(r.innerText.toLowerCase().indexOf(kw)!==-1){ r.style.display=''; rowHit=true; }
+        else { r.style.display='none'; }
+      });
+      block.style.display = rowHit ? '' : 'none';
+      if(rowHit) anyVisible=true;
+    } else {
+      // non-table block (emergency / sprout / modules)
+      block.style.display = blockHit ? '' : 'none';
+      if(blockHit) anyVisible=true;
+    }
+  });
+  document.getElementById('nores').style.display = anyVisible ? 'none':'block';
+}
+function restoreRows(block){
+  block.querySelectorAll('tr').forEach(function(r){ r.style.display=''; });
+}
+</script>
+</body>
+</html>
