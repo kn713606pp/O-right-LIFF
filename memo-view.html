@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>備忘錄詳情</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="config.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #F0F4F8; color: #333; }
+
+  .header {
+    padding: 14px 16px; position: sticky; top: 0; z-index: 10; color: #fff;
+  }
+  .header-知會 { background: #1565C0; }
+  .header-協辦 { background: #2E7D32; }
+  .header-討論 { background: #6A1B9A; }
+  .header h1 { font-size: 16px; font-weight: bold; }
+  .header p  { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+
+  .body { padding: 12px 14px 120px; }
+
+  /* ── 主要資訊卡 ── */
+  .info-card {
+    background: #fff; border-radius: 10px;
+    padding: 14px; margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .info-title { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+  .info-row {
+    display: flex; gap: 6px; margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .info-label { color: #999; flex-shrink: 0; width: 80px; }
+  .info-val   { color: #333; flex: 1; word-break: break-word; }
+  .content-box {
+    background: #F5F5F5; border-radius: 8px; padding: 10px;
+    font-size: 13px; white-space: pre-wrap; margin-top: 8px;
+  }
+
+  /* ── 狀態摘要 ── */
+  .status-card {
+    background: #fff; border-radius: 10px;
+    padding: 14px; margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .status-title { font-size: 13px; font-weight: 700; color: #555; margin-bottom: 8px; }
+  .ack-bar {
+    height: 6px; border-radius: 3px; background: #E0E0E0; margin-bottom: 6px; overflow: hidden;
+  }
+  .ack-fill { height: 100%; border-radius: 3px; background: #2E7D32; transition: width 0.3s; }
+  .ack-text { font-size: 12px; color: #555; }
+  .unread-names { font-size: 12px; color: #C62828; margin-top: 4px; }
+  .coop-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 0; border-bottom: 1px solid #F0F0F0; font-size: 13px;
+  }
+  .coop-status {
+    font-size: 11px; font-weight: 700; padding: 1px 7px;
+    border-radius: 6px; margin-left: auto;
+  }
+  .coop-接受   { background: #E8F5E9; color: #2E7D32; }
+  .coop-婉拒   { background: #FFEBEE; color: #C62828; }
+  .coop-已完成 { background: #E3F2FD; color: #1565C0; }
+
+  /* ── 回覆串 ── */
+  .reply-card {
+    background: #fff; border-radius: 10px;
+    padding: 14px; margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .reply-item {
+    padding: 8px 0; border-bottom: 1px solid #F5F5F5;
+  }
+  .reply-item:last-child { border-bottom: none; }
+  .reply-meta { font-size: 11px; color: #999; margin-bottom: 3px; }
+  .reply-content { font-size: 13px; white-space: pre-wrap; }
+
+  .reply-input {
+    display: flex; gap: 8px; margin-top: 10px;
+  }
+  .reply-input textarea {
+    flex: 1; border: 1px solid #ccc; border-radius: 8px;
+    padding: 8px 10px; font-size: 13px; resize: none; min-height: 60px;
+  }
+  .reply-input textarea:focus { outline: none; border-color: #6A1B9A; }
+  .reply-input button {
+    padding: 0 14px; border-radius: 8px; border: none;
+    background: #6A1B9A; color: #fff; font-size: 13px;
+    font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+
+  /* ── 操作按鈕 ── */
+  .action-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #fff; padding: 10px 14px 18px;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .btn {
+    flex: 1; min-width: 100px; padding: 10px 8px;
+    border-radius: 8px; border: none; font-size: 13px;
+    font-weight: 600; cursor: pointer; text-align: center;
+  }
+  .btn-primary  { background: #1565C0; color: #fff; }
+  .btn-green    { background: #2E7D32; color: #fff; }
+  .btn-red      { background: #C62828; color: #fff; }
+  .btn-outline  { background: #fff; color: #555; border: 1px solid #ccc; }
+  .btn-purple   { background: #6A1B9A; color: #fff; }
+  .btn:disabled { background: #ddd; color: #aaa; cursor: default; }
+
+  #loadingOverlay {
+    position: fixed; inset: 0; background: rgba(255,255,255,0.9);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
+  }
+  .spinner {
+    width: 36px; height: 36px; border: 4px solid #dce6f0; border-top-color: #1565C0;
+    border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 10px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty { text-align: center; padding: 20px; color: #bbb; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div style="font-size:14px;color:#888;">載入中…</div>
+</div>
+
+<div class="header header-知會" id="pageHeader">
+  <h1 id="headerTitle">備忘錄詳情</h1>
+  <p id="headerSub">載入中…</p>
+</div>
+
+<div class="body" id="pageBody" style="display:none;">
+
+  <!-- 主要資訊 -->
+  <div class="info-card">
+    <div class="info-title" id="infoSubject"></div>
+    <div class="info-row"><span class="info-label">📋 類別</span><span class="info-val" id="infoCategory"></span></div>
+    <div class="info-row"><span class="info-label">👤 發起人</span><span class="info-val" id="infoCreator"></span></div>
+    <div class="info-row"><span class="info-label">👥 相關人員</span><span class="info-val" id="infoTargets"></span></div>
+    <div class="info-row" id="rowDueDate" style="display:none;"><span class="info-label">⏰ 期望回覆日</span><span class="info-val" id="infoDueDate"></span></div>
+    <div class="info-row"><span class="info-label">📅 建立時間</span><span class="info-val" id="infoCreated"></span></div>
+    <div class="info-row" id="rowLink" style="display:none;"><span class="info-label">🔗 關聯案件</span><span class="info-val" id="infoLink"></span></div>
+    <div id="contentBox" class="content-box" style="display:none;"></div>
+  </div>
+
+  <!-- 知悉狀態（發起人視角） -->
+  <div class="status-card" id="statusCard" style="display:none;">
+    <div class="status-title">📊 知悉狀態</div>
+    <div class="ack-bar"><div class="ack-fill" id="ackFill" style="width:0%"></div></div>
+    <div class="ack-text" id="ackText"></div>
+    <div class="unread-names" id="unreadNames"></div>
+
+    <!-- 協辦狀態（協辦類才顯示） -->
+    <div id="coopSection" style="display:none; margin-top:12px;">
+      <div class="status-title" style="margin-bottom:6px;">🤝 協辦狀態</div>
+      <div id="coopList"></div>
+    </div>
+  </div>
+
+  <!-- 討論回覆串 -->
+  <div class="reply-card" id="replyCard" style="display:none;">
+    <div class="status-title">💬 回覆討論</div>
+    <div id="replyList"></div>
+    <div class="reply-input" id="replyInputArea" style="display:none;">
+      <textarea id="replyText" placeholder="輸入回覆…"></textarea>
+      <button onclick="submitReply()">送出</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- 底部操作按鈕（動態依角色/類別顯示） -->
+<div class="action-bar" id="actionBar" style="display:none;"></div>
+
+<script>
+var GAS_URL = window.GAS_URL;
+var LIFF_ID = window.LIFF_ID;
+var userId  = "";
+var memoId  = "";
+var memo    = null;
+
+// 解析 URL 參數
+(function() {
+  var qs = location.search.replace("?","");
+  qs.split("&").forEach(function(pair) {
+    var kv = pair.split("=");
+    if (kv[0] === "memoId") memoId = decodeURIComponent(kv[1] || "");
+  });
+})();
+
+liff.init({ liffId: LIFF_ID }).then(function() {
+  if (!liff.isLoggedIn()) { liff.login(); return; }
+  var ctx = liff.getContext();
+  var p = (ctx && ctx.userId)
+    ? Promise.resolve({ userId: ctx.userId })
+    : liff.getProfile();
+  return p.then(function(profile) {
+    userId = profile.userId || (ctx && ctx.userId) || "";
+    if (!memoId) throw new Error("缺少備忘錄 ID");
+    return loadMemo();
+  });
+}).catch(function(err) {
+  document.getElementById("loadingOverlay").style.display = "none";
+  document.getElementById("headerSub").textContent = "載入失敗：" + err.message;
+});
+
+function loadMemo() {
+  return fetch(GAS_URL + "?action=getMemos&userId=" + encodeURIComponent(userId)
+      + "&type=detail&memoId=" + encodeURIComponent(memoId))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      memo = data;
+      renderMemo();
+      document.getElementById("loadingOverlay").style.display = "none";
+    })
+    .catch(function(err) {
+      document.getElementById("loadingOverlay").style.display = "none";
+      document.getElementById("headerSub").textContent = "載入失敗：" + err.message;
+    });
+}
+
+var catIcon  = { "知會": "📢", "協辦": "🤝", "討論": "💬" };
+var catColor = { "知會": "header-知會", "協辦": "header-協辦", "討論": "header-討論" };
+
+function renderMemo() {
+  var cat = memo.category || "知會";
+  var icon = catIcon[cat] || "📝";
+
+  // 頁首
+  var hdr = document.getElementById("pageHeader");
+  hdr.className = "header " + (catColor[cat] || "header-知會");
+  document.getElementById("headerTitle").textContent = icon + " " + cat + "備忘錄";
+  document.getElementById("headerSub").textContent = "狀態：" + (memo.status || "");
+
+  // 主要資訊
+  document.getElementById("infoSubject").textContent  = memo.subject;
+  document.getElementById("infoCategory").textContent = icon + " " + cat;
+  document.getElementById("infoCreator").textContent  =
+    (memo.creatorName || "—") + (memo.creatorDept ? "（" + memo.creatorDept + "）" : "");
+  document.getElementById("infoTargets").textContent  = (memo.targetNames || "").replace(/,/g, "、");
+  document.getElementById("infoCreated").textContent  = memo.createdTime || "";
+  if (memo.dueDate) {
+    document.getElementById("infoDueDate").textContent = memo.dueDate;
+    document.getElementById("rowDueDate").style.display = "";
+  }
+  if (memo.linkRef) {
+    document.getElementById("infoLink").textContent = memo.linkRef;
+    document.getElementById("rowLink").style.display = "";
+  }
+  if (memo.content) {
+    var cb = document.getElementById("contentBox");
+    cb.textContent = memo.content;
+    cb.style.display = "";
+  }
+
+  // 發起人視角：知悉狀態
+  if (memo.isCreator && memo.statusData) {
+    var sd   = memo.statusData;
+    var pct  = sd.total > 0 ? Math.round(sd.acked / sd.total * 100) : 0;
+    document.getElementById("ackFill").style.width  = pct + "%";
+    document.getElementById("ackText").textContent  = "已知悉 " + sd.acked + " / " + sd.total + " 人（" + pct + "%）";
+    if (sd.unreadNames && sd.unreadNames.length) {
+      document.getElementById("unreadNames").textContent = "未讀：" + sd.unreadNames.join("、");
+    }
+    // 協辦狀態
+    if (cat === "協辦" && sd.coopStatuses && sd.coopStatuses.length) {
+      document.getElementById("coopSection").style.display = "";
+      var coopHtml = sd.coopStatuses.map(function(c) {
+        return '<div class="coop-row">'
+          + '<span>' + esc(c.name) + '</span>'
+          + '<span class="coop-status coop-' + esc(c.status) + '">' + esc(c.status) + '</span>'
+          + '<span style="font-size:11px;color:#aaa;margin-left:4px;">' + esc(c.time) + '</span>'
+          + '</div>';
+      }).join("");
+      document.getElementById("coopList").innerHTML = coopHtml;
+    }
+    document.getElementById("statusCard").style.display = "";
+  }
+
+  // 回覆串（所有類別都可看到，討論類才預設展開輸入框）
+  var sd = memo.statusData;
+  if (sd && sd.replies) {
+    renderReplies(sd.replies);
+  }
+  document.getElementById("replyCard").style.display = "";
+  if (memo.status !== "已結") {
+    document.getElementById("replyInputArea").style.display = "";
+  }
+
+  // 底部操作按鈕
+  renderActionBar(cat);
+
+  document.getElementById("pageBody").style.display = "";
+  document.getElementById("actionBar").style.display = "";
+}
+
+function renderReplies(replies) {
+  var el = document.getElementById("replyList");
+  if (!replies.length) {
+    el.innerHTML = '<div class="empty">尚無回覆</div>';
+    return;
+  }
+  el.innerHTML = replies.map(function(r) {
+    return '<div class="reply-item">'
+      + '<div class="reply-meta">' + esc(r.name) + (r.dept ? "（" + esc(r.dept) + "）" : "") + "　" + esc(r.time) + '</div>'
+      + '<div class="reply-content">' + esc(r.content) + '</div>'
+      + '</div>';
+  }).join("");
+}
+
+function renderActionBar(cat) {
+  var buttons = [];
+  var isClosed = memo.status === "已結";
+  var isCreator = memo.isCreator;
+  var isTarget  = (memo.targetIds || "").split(",").map(function(s) { return s.trim(); }).indexOf(userId) !== -1;
+
+  // 受件人：知悉 / 協辦按鈕（未結案才顯示）
+  if (!isClosed && isTarget) {
+    if (cat === "知會" || cat === "討論") {
+      buttons.push('<button class="btn btn-primary" onclick="doAck()">✔ 知悉</button>');
+    }
+    if (cat === "協辦") {
+      buttons.push('<button class="btn btn-green"   onclick="doCoop(\'接受\')">✔ 接受協辦</button>');
+      buttons.push('<button class="btn btn-red"     onclick="doCoop(\'婉拒\')">✖ 婉拒</button>');
+      buttons.push('<button class="btn btn-outline" onclick="doCoop(\'已完成\')">✅ 已完成</button>');
+    }
+  }
+
+  // 發起人：結案
+  if (!isClosed && isCreator) {
+    buttons.push('<button class="btn btn-outline" onclick="doClose()">🔒 結案</button>');
+  }
+
+  if (isClosed) {
+    buttons.push('<span style="font-size:13px;color:#888;padding:10px;">此備忘錄已結案</span>');
+  }
+
+  document.getElementById("actionBar").innerHTML = buttons.join("");
+}
+
+// ── 操作 ─────────────────────────────────────────────────────
+
+function doAck() {
+  fetch(GAS_URL + "?action=ackMemo&userId=" + encodeURIComponent(userId) + "&memoId=" + encodeURIComponent(memoId))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        alert("✅ 已知悉");
+        loadMemo();
+      } else {
+        alert("❌ " + (data.msg || "操作失敗"));
+      }
+    });
+}
+
+function doCoop(status) {
+  fetch(GAS_URL + "?action=coopMemo&userId=" + encodeURIComponent(userId)
+      + "&memoId=" + encodeURIComponent(memoId)
+      + "&status=" + encodeURIComponent(status))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        alert("✅ 已更新：" + status);
+        loadMemo();
+      } else {
+        alert("❌ " + (data.msg || "操作失敗"));
+      }
+    });
+}
+
+function submitReply() {
+  var content = document.getElementById("replyText").value.trim();
+  if (!content) { alert("請輸入回覆內容"); return; }
+
+  fetch(GAS_URL + "?action=replyMemo&userId=" + encodeURIComponent(userId)
+      + "&memoId=" + encodeURIComponent(memoId)
+      + "&content=" + encodeURIComponent(content))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        document.getElementById("replyText").value = "";
+        loadMemo();
+      } else {
+        alert("❌ " + (data.msg || "送出失敗"));
+      }
+    });
+}
+
+function doClose() {
+  if (!confirm("確定要結案此備忘錄？結案後將無法再回覆。")) return;
+  fetch(GAS_URL + "?action=closeMemo&userId=" + encodeURIComponent(userId) + "&memoId=" + encodeURIComponent(memoId))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        alert("🔒 已結案");
+        loadMemo();
+      } else {
+        alert("❌ " + (data.msg || "操作失敗"));
+      }
+    });
+}
+
+function esc(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新增備忘錄</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="config.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #F0F4F8; color: #333; }
+
+  .header {
+    background: #1565C0; color: #fff;
+    padding: 14px 16px; position: sticky; top: 0; z-index: 10;
+  }
+  .header h1 { font-size: 17px; font-weight: bold; }
+  .header p  { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+
+  .form-body { padding: 14px 14px 100px; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 700; color: #555; margin-bottom: 5px; }
+  .field input, .field textarea, .field select {
+    width: 100%; border: 1px solid #ccc; border-radius: 8px;
+    padding: 9px 11px; font-size: 14px; background: #fff;
+  }
+  .field textarea { min-height: 80px; resize: vertical; }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none; border-color: #1565C0; box-shadow: 0 0 0 2px rgba(21,101,192,0.15);
+  }
+
+  /* Category selector */
+  .cat-group { display: flex; gap: 8px; }
+  .cat-btn {
+    flex: 1; padding: 10px 6px; border-radius: 8px; border: 2px solid #ddd;
+    font-size: 13px; font-weight: 600; background: #fff; cursor: pointer;
+    text-align: center; transition: all 0.15s;
+  }
+  .cat-btn.active-知會  { background: #E3F2FD; border-color: #1565C0; color: #1565C0; }
+  .cat-btn.active-協辦  { background: #E8F5E9; border-color: #2E7D32; color: #2E7D32; }
+  .cat-btn.active-討論  { background: #F3E5F5; border-color: #6A1B9A; color: #6A1B9A; }
+
+  /* Member multi-select */
+  .member-grid {
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 260px; overflow-y: auto;
+    border: 1px solid #ccc; border-radius: 8px; padding: 8px; background: #fff;
+  }
+  .member-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; border-radius: 6px; cursor: pointer; transition: background 0.1s;
+  }
+  .member-item:hover { background: #F0F4F8; }
+  .member-item input[type=checkbox] { width: 18px; height: 18px; accent-color: #1565C0; flex-shrink: 0; }
+  .member-name { font-size: 13px; font-weight: 600; }
+  .member-dept { font-size: 11px; color: #888; margin-left: auto; }
+
+  .dept-filter {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;
+  }
+  .dept-tag {
+    font-size: 12px; padding: 3px 10px; border-radius: 12px;
+    border: 1px solid #ccc; background: #fff; cursor: pointer;
+  }
+  .dept-tag.active { background: #1565C0; color: #fff; border-color: #1565C0; }
+
+  .selected-names {
+    font-size: 12px; color: #1565C0; margin-top: 6px; min-height: 18px;
+  }
+
+  .hint { font-size: 11px; color: #999; margin-top: 4px; }
+
+  .btn-submit {
+    position: fixed; bottom: 16px; left: 16px; right: 16px;
+    padding: 14px; border-radius: 10px; border: none;
+    background: #1565C0; color: #fff; font-size: 16px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 3px 12px rgba(21,101,192,0.35);
+  }
+  .btn-submit:disabled { background: #aaa; box-shadow: none; }
+
+  #loadingOverlay {
+    position: fixed; inset: 0; background: rgba(255,255,255,0.9);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
+  }
+  .spinner {
+    width: 36px; height: 36px; border: 4px solid #dce6f0; border-top-color: #1565C0;
+    border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 10px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div style="font-size:14px;color:#888;">載入中…</div>
+</div>
+
+<div class="header">
+  <h1>📨 新增備忘錄</h1>
+  <p>橫向跨部門協調：知會 / 協辦 / 討論</p>
+</div>
+
+<div class="form-body">
+
+  <div class="field">
+    <label>類別 *</label>
+    <div class="cat-group">
+      <div class="cat-btn active-知會" data-cat="知會" onclick="selectCat('知會')">📢 知會</div>
+      <div class="cat-btn" data-cat="協辦" onclick="selectCat('協辦')">🤝 協辦</div>
+      <div class="cat-btn" data-cat="討論" onclick="selectCat('討論')">💬 討論</div>
+    </div>
+    <div class="hint" id="catHint">知悉即可，不需採取行動</div>
+  </div>
+
+  <div class="field">
+    <label>主旨 *</label>
+    <input type="text" id="subject" placeholder="備忘錄主旨（必填）" maxlength="100">
+  </div>
+
+  <div class="field">
+    <label>內容</label>
+    <textarea id="content" placeholder="詳細說明、背景資訊…"></textarea>
+  </div>
+
+  <div class="field">
+    <label>相關人員 * <span style="font-weight:400;color:#888;">（可多選）</span></label>
+    <div class="dept-filter" id="deptFilter"></div>
+    <div class="member-grid" id="memberGrid">
+      <div style="color:#aaa;text-align:center;padding:20px;font-size:13px;">載入成員中…</div>
+    </div>
+    <div class="selected-names" id="selectedNames">尚未選取任何人</div>
+  </div>
+
+  <div class="field">
+    <label>期望回覆日 <span style="font-weight:400;color:#888;">（選填）</span></label>
+    <input type="date" id="dueDate">
+  </div>
+
+  <div class="field">
+    <label>關聯案件 <span style="font-weight:400;color:#888;">（選填，例：T-xxx / R-xxx）</span></label>
+    <input type="text" id="linkRef" placeholder="T-1234567890">
+  </div>
+
+</div>
+
+<button class="btn-submit" id="btnSubmit" disabled onclick="submit()">📨 送出備忘錄</button>
+
+<script>
+var GAS_URL = window.GAS_URL;
+var LIFF_ID = window.LIFF_ID;
+var userId  = "";
+var userInfo = null;
+var allMembers = [];
+var selectedCategory = "知會";
+var selectedIds      = [];
+
+liff.init({ liffId: LIFF_ID }).then(function() {
+  if (!liff.isLoggedIn()) { liff.login(); return; }
+  var ctx = liff.getContext();
+  var p   = ctx && ctx.userId
+    ? Promise.resolve({ userId: ctx.userId })
+    : liff.getProfile();
+  return p.then ? p.then(function(profile) {
+    userId = profile.userId || (ctx && ctx.userId) || "";
+    return fetch(GAS_URL + "?action=getMembersList");
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    allMembers = (data.members || []).filter(function(m) { return m.lineId && m.lineId !== userId; });
+    renderDeptFilter();
+    renderMembers(allMembers);
+    document.getElementById("loadingOverlay").style.display = "none";
+  }) : null;
+}).catch(function(err) {
+  document.getElementById("loadingOverlay").style.display = "none";
+  alert("載入失敗：" + err.message);
+});
+
+var catHints = {
+  "知會": "知悉即可，不需採取行動",
+  "協辦": "請求對方協助（可接受或婉拒）",
+  "討論": "需要來回溝通，喬出共識",
+};
+
+function selectCat(cat) {
+  selectedCategory = cat;
+  document.querySelectorAll(".cat-btn").forEach(function(btn) {
+    btn.className = "cat-btn" + (btn.dataset.cat === cat ? " active-" + cat : "");
+  });
+  document.getElementById("catHint").textContent = catHints[cat] || "";
+}
+
+function renderDeptFilter() {
+  var depts = [];
+  var seen  = {};
+  allMembers.forEach(function(m) {
+    if (m.dept && !seen[m.dept]) { seen[m.dept] = true; depts.push(m.dept); }
+  });
+  var el = document.getElementById("deptFilter");
+  el.innerHTML = '<div class="dept-tag active" data-dept="" onclick="filterDept(this,\'\')">全部</div>'
+    + depts.map(function(d) {
+        return '<div class="dept-tag" data-dept="' + esc(d) + '" onclick="filterDept(this,\'' + esc(d) + '\')">' + esc(d) + '</div>';
+      }).join("");
+}
+
+var currentDept = "";
+function filterDept(el, dept) {
+  currentDept = dept;
+  document.querySelectorAll(".dept-tag").forEach(function(t) { t.classList.remove("active"); });
+  el.classList.add("active");
+  renderMembers(dept ? allMembers.filter(function(m) { return m.dept === dept; }) : allMembers);
+}
+
+function renderMembers(list) {
+  var el = document.getElementById("memberGrid");
+  if (!list.length) {
+    el.innerHTML = '<div style="color:#aaa;text-align:center;padding:20px;font-size:13px;">此部門無成員</div>';
+    return;
+  }
+  el.innerHTML = list.map(function(m) {
+    var checked = selectedIds.indexOf(m.lineId) !== -1;
+    return '<label class="member-item">'
+      + '<input type="checkbox" value="' + esc(m.lineId) + '" data-name="' + esc(m.name || m.displayName) + '" '
+      + (checked ? "checked" : "") + ' onchange="toggleMember(this)">'
+      + '<span class="member-name">' + esc(m.name || m.displayName) + '</span>'
+      + '<span class="member-dept">' + esc(m.dept || "—") + '</span>'
+      + '</label>';
+  }).join("");
+}
+
+function toggleMember(cb) {
+  var id   = cb.value;
+  var name = cb.dataset.name;
+  if (cb.checked) {
+    if (selectedIds.indexOf(id) === -1) selectedIds.push(id);
+  } else {
+    selectedIds = selectedIds.filter(function(x) { return x !== id; });
+  }
+  updateSelectedNames();
+}
+
+function updateSelectedNames() {
+  var names = selectedIds.map(function(id) {
+    var m = allMembers.filter(function(m) { return m.lineId === id; })[0];
+    return m ? (m.name || m.displayName) : id;
+  });
+  document.getElementById("selectedNames").textContent =
+    names.length ? "已選：" + names.join("、") : "尚未選取任何人";
+  document.getElementById("btnSubmit").disabled = selectedIds.length === 0 || !document.getElementById("subject").value.trim();
+}
+
+document.getElementById("subject").addEventListener("input", function() {
+  document.getElementById("btnSubmit").disabled =
+    selectedIds.length === 0 || !this.value.trim();
+});
+
+function submit() {
+  var subject = document.getElementById("subject").value.trim();
+  if (!subject) { alert("請填寫主旨"); return; }
+  if (!selectedIds.length) { alert("請選擇至少一位相關人員"); return; }
+
+  var btn = document.getElementById("btnSubmit");
+  btn.disabled = true;
+  btn.textContent = "送出中…";
+
+  var members = allMembers.filter(function(m) { return selectedIds.indexOf(m.lineId) !== -1; });
+  var targetNames = members.map(function(m) { return m.name || m.displayName; }).join(",");
+  var targetDepts = Array.from(new Set(members.map(function(m) { return m.dept || ""; }).filter(Boolean))).join(",");
+
+  var userMbr  = allMembers.filter(function(m) { return m.lineId === userId; })[0];
+  var creatorName = userMbr ? (userMbr.name || userMbr.displayName) : "";
+  var creatorDept = userMbr ? (userMbr.dept || "") : "";
+
+  var url = GAS_URL
+    + "?action=createMemo"
+    + "&userId="       + encodeURIComponent(userId)
+    + "&creatorName="  + encodeURIComponent(creatorName)
+    + "&creatorDept="  + encodeURIComponent(creatorDept)
+    + "&category="     + encodeURIComponent(selectedCategory)
+    + "&subject="      + encodeURIComponent(subject)
+    + "&content="      + encodeURIComponent(document.getElementById("content").value.trim())
+    + "&targetIds="    + encodeURIComponent(selectedIds.join(","))
+    + "&targetNames="  + encodeURIComponent(targetNames)
+    + "&targetDepts="  + encodeURIComponent(targetDepts)
+    + "&dueDate="      + encodeURIComponent(document.getElementById("dueDate").value)
+    + "&linkRef="      + encodeURIComponent(document.getElementById("linkRef").value.trim());
+
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      var notFriendMsg = data.notFriend && data.notFriend.length
+        ? "\n\n⚠️ 以下人員未加 Bot 好友，無法通知：\n" + data.notFriend.join("、") : "";
+      alert("✅ 備忘錄已送出！\n已通知 " + (data.notified || 0) + " 人。" + notFriendMsg);
+      liff.closeWindow();
+    })
+    .catch(function(err) {
+      alert("❌ 送出失敗：" + err.message);
+      btn.disabled = false;
+      btn.textContent = "📨 送出備忘錄";
+    });
+}
+
+function esc(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+</script>
+</body>
+</html>
