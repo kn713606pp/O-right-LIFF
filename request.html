@@ -192,6 +192,18 @@ let membersMap = {};   // lineId → member
 let approverOptions = [];  // [{value, label}] managers+admins only
 let pendingFiles = [];  // 累積選取的附件
 let lastRequestId = "";
+let sourceTaskId = "";  // 任務轉請示：來源任務 ID（由 URL 帶入）
+
+// 解析 LIFF URL 參數（LIFF 可能把 query 包進 liff.state）
+function getParams() {
+  const sp = new URLSearchParams(window.location.search);
+  if (sp.has("liff.state")) {
+    const st = sp.get("liff.state");
+    const qIdx = st.indexOf("?");
+    return new URLSearchParams(qIdx >= 0 ? st.substring(qIdx) : st);
+  }
+  return sp;
+}
 
 async function init() {
   await liff.init({ liffId: window.LIFF_ID });
@@ -235,6 +247,18 @@ async function init() {
     }
 
     addLevel();  // 預設一關
+
+    // 任務轉請示：由 URL 帶入時，預填主旨/內容並標示來源任務
+    const params = getParams();
+    sourceTaskId = params.get("taskId") || "";
+    const preSubject = params.get("subject") || "";
+    const preContent = params.get("content") || "";
+    if (preSubject) document.getElementById("subject").value = preSubject;
+    if (preContent) document.getElementById("content").value = preContent;
+    if (sourceTaskId) {
+      const hdr = document.querySelector(".header p");
+      if (hdr) hdr.textContent = "🆙 由任務「" + sourceTaskId + "」上呈，請指定簽核鏈";
+    }
 
     // 催簽啟用/停用切換
     document.getElementById("escalateEnabled").addEventListener("change", function() {
@@ -401,6 +425,7 @@ async function submit() {
     content:       finalContent,
     escalateDays:  escalateDays,
   });
+  if (sourceTaskId) p.set("sourceTaskId", sourceTaskId);
 
   try {
     const res  = await fetch(GAS + "?" + p.toString());
