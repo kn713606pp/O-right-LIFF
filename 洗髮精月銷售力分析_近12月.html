@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>各洗髮精系列 每月銷售力分析（近 12 個月）</title>
+<style>
+  :root{ --green:#3a7d44; --green-d:#2c5e34; --ink:#222; --grid:#e6e6e6; --bg:#fafaf7; --card:#fff; --muted:#777; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI","Microsoft JhengHei","PingFang TC",sans-serif;line-height:1.55}
+  header{background:linear-gradient(135deg,var(--green-d),var(--green));color:#fff;padding:22px 26px}
+  header h1{margin:0 0 4px;font-size:22px}
+  header .sub{font-size:13px;opacity:.92}
+  .badge{display:inline-block;background:#b3261e;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px}
+  .card{background:var(--card);border:1px solid #ececec;border-radius:12px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .note{font-size:12.5px;color:var(--muted)}
+  .kpis{display:flex;flex-wrap:wrap;gap:12px}
+  .kpi{flex:1 1 150px;background:#f3f7f3;border-radius:10px;padding:12px 14px}
+  .kpi .n{font-size:21px;font-weight:700;color:var(--green-d)}
+  .kpi .l{font-size:12px;color:var(--muted)}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  .tabs button,.btn{cursor:pointer;border:1px solid #cdd6cd;background:#fff;border-radius:8px;padding:6px 12px;font-size:13px}
+  .tabs button.active{background:var(--green);color:#fff;border-color:var(--green)}
+  .btn:hover,.tabs button:hover{border-color:var(--green)}
+  .chart-box{position:relative;overflow-x:auto}
+  svg{display:block;max-width:100%;height:auto}
+  .legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .lg{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 8px;border:1px solid #e4e4e4;border-radius:20px;cursor:pointer;user-select:none;opacity:.45}
+  .lg.on{opacity:1;border-color:#cfd9cf;background:#f6faf6}
+  .lg .dot{width:11px;height:11px;border-radius:50%;flex:none}
+  #tip{position:absolute;pointer-events:none;background:rgba(20,30,20,.94);color:#fff;font-size:12px;padding:6px 9px;border-radius:6px;opacity:0;transform:translate(-50%,-130%);white-space:nowrap;z-index:5}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{padding:7px 9px;border-bottom:1px solid #eee;text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  th{background:#f3f7f3;cursor:pointer;position:sticky;top:0}
+  th:hover{color:var(--green-d)}
+  td .sw{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+  .rk{color:var(--muted);font-size:12px}
+  ul.ins{margin:6px 0 0;padding-left:18px;font-size:13.5px}
+  ul.ins li{margin-bottom:6px}
+  .tag{display:inline-block;background:#eef3ee;color:var(--green-d);border-radius:6px;padding:0 6px;font-size:11.5px;margin-left:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>各洗髮精系列 · 每月銷售力分析 <span class="badge">🔒 營業秘密 · 限內部</span></h1>
+  <div class="sub">近 12 個月（2025-05 ～ 2026-04）· 依產品系列彙整 · 數量＋金額雙指標 · 來源：產品物料主數據庫 進銷存月報「銷貨」欄</div>
+</header>
+<div class="wrap">
+
+  <div class="card">
+    <div class="kpis">
+      <div class="kpi"><div class="n" id="k1">—</div><div class="l">近12月總銷量（瓶）</div></div>
+      <div class="kpi"><div class="n" id="k2">—</div><div class="l">近12月總銷額（NT$）</div></div>
+      <div class="kpi"><div class="n" id="k3">—</div><div class="l">成品系列數</div></div>
+      <div class="kpi"><div class="n" id="k4">—</div><div class="l">整體平均單價</div></div>
+      <div class="kpi"><div class="n" id="k5">—</div><div class="l">Top3 銷量集中度</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <span class="tabs" id="tabs">
+        <button data-m="q" class="active">銷售數量（瓶）</button>
+        <button data-m="v">銷售金額（NT$）</button>
+      </span>
+      <span style="flex:1"></span>
+      <button class="btn" data-act="top8">僅 Top 8</button>
+      <button class="btn" data-act="all">全部顯示</button>
+      <button class="btn" data-act="none">全部隱藏</button>
+    </div>
+    <div class="chart-box">
+      <svg id="chart" viewBox="0 0 980 470" preserveAspectRatio="xMidYMid meet"></svg>
+      <div id="tip"></div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="note" style="margin-top:10px">提示：點圖例可開關單一系列；游標移到資料點看當月數值。預設顯示銷量前 8 大系列。</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 8px">系列排行（點欄位標題可排序）</h3>
+    <div style="max-height:360px;overflow:auto">
+      <table id="rank"><thead><tr>
+        <th data-k="name">系列</th>
+        <th data-k="totalQ">總銷量（瓶）</th>
+        <th data-k="totalV">總銷額（NT$）</th>
+        <th data-k="avg">平均單價</th>
+        <th data-k="shareQ">銷量佔比</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 4px">關鍵洞察</h3>
+    <ul class="ins">
+      <li><b>規模與集中度</b>：近 12 月洗髮精成品共售 <b>328,622 瓶 / NT$ 53,903,338</b>。<b>咖啡因</b>單一系列即佔銷量 17.9%，<b>咖啡因＋茶樹＋綠茶</b>合計 130,467 瓶，集中度 <b>39.7%</b>。</li>
+      <li><b>明顯季節性</b>：高峰落在 <b>5 月（6.0 萬瓶）、10 月（3.8 萬）、3 月（3.8 萬）</b>，低谷在 7 / 9 / 2 月（約 1.4–1.7 萬）。波動約 4 倍，呼應季末備貨與檔期促銷節奏。</li>
+      <li><b>沙龍 PRO 線（高均價）</b>：香檸草修護、薔薇護色、雪松橙控油、木蘭保濕、薰衣草深層 銷量小，但均價達 <b>620–910 元</b>（大容量／專業裝），營收貢獻遠高於其銷量排名。</li>
+      <li><b>「整批出貨型」需留意 <span class="tag">非穩定零售</span></b>：綠意輕風、絲漾玫瑰保濕、沁漾紅茶控油、犬香薷 僅在個別月份一次性大量、其餘月份為 0，研判為專案／通路整批鋪貨或代工，不宜當作月動銷趨勢解讀。</li>
+      <li><b>低價走量品</b>：零度C 均價僅 38 元，且 2025-05 一次衝出 2 萬瓶後驟降，屬促銷／小規格走量型。</li>
+    </ul>
+    <div class="note" style="margin-top:10px">
+      口徑說明：採進銷存「<b>銷貨</b>」欄（量／額），已<b>跨倉加總</b>、<b>排除裸瓶與包材半成品</b>（品名含底線者）與零銷貨品項；沙龍線羅馬數字前綴（Ⅰ–Ⅴ / I–V）已正規化併入同名系列；同系列不同容量與版本（如典藏版／補充瓶）已合併。「銷貨」可能含部分通路整批調撥，與營運業績庫的對外營收口徑略有差異。資料產生日 2026-05-29。
+    </div>
+  </div>
+
+  <div class="note" style="text-align:center;padding:6px 0 20px">產品物料主數據知識庫 · wiki/queries · 自含離線檔，請勿上傳公開 AI</div>
+</div>
+
+<script>
+const DATA = {
+    "months":  [
+                   "2025-05",
+                   "2025-06",
+                   "2025-07",
+                   "2025-08",
+                   "2025-09",
+                   "2025-10",
+                   "2025-11",
+                   "2025-12",
+                   "2026-01",
+                   "2026-02",
+                   "2026-03",
+                   "2026-04"
+               ],
+    "series":  [
+                   {
+                       "name":  "咖啡因",
+                       "q":  [
+                                 13135,
+                                 6752,
+                                 2015,
+                                 4486,
+                                 2261,
+                                 4219,
+                                 3214,
+                                 2074,
+                                 1320,
+                                 2140,
+                                 11429,
+                                 5833
+                             ],
+                       "v":  [
+                                 1913091,
+                                 800811,
+                                 398010,
+                                 696857,
+                                 452029,
+                                 877978,
+                                 650340,
+                                 391445,
+                                 228185,
+                                 368292,
+                                 2237935,
+                                 1035542
+                             ],
+                       "totalQ":  58878,
+                       "totalV":  10050515
+                   },
+                   {
+                       "name":  "茶樹",
+                       "q":  [
+                                 5961,
+                                 8056,
+                                 1465,
+                                 2922,
+                                 1226,
+                                 4879,
+                                 1604,
+                                 2974,
+                                 2904,
+                                 1528,
+                                 3204,
+                                 7726
+                             ],
+                       "v":  [
+                                 743177,
+                                 986461,
+                                 255855,
+                                 380659,
+                                 239952,
+                                 796925,
+                                 314301,
+                                 509236,
+                                 415503,
+                                 273544,
+                                 593348,
+                                 974648
+                             ],
+                       "totalQ":  44449,
+                       "totalV":  6483609
+                   },
+                   {
+                       "name":  "綠茶",
+                       "q":  [
+                                 4685,
+                                 3919,
+                                 1170,
+                                 1193,
+                                 949,
+                                 2129,
+                                 1467,
+                                 1218,
+                                 2393,
+                                 1433,
+                                 2591,
+                                 3993
+                             ],
+                       "v":  [
+                                 609662,
+                                 428773,
+                                 207474,
+                                 197049,
+                                 180681,
+                                 364517,
+                                 283260,
+                                 225504,
+                                 390062,
+                                 207381,
+                                 525723,
+                                 625489
+                             ],
+                       "totalQ":  27140,
+                       "totalV":  4245575
+                   },
+                   {
+                       "name":  "零度C",
+                       "q":  [
+                                 20404,
+                                 335,
+                                 621,
+                                 616,
+                                 267,
+                                 385,
+                                 315,
+                                 129,
+                                 71,
+                                 154,
+                                 816,
+                                 292
+                             ],
+                       "v":  [
+                                 219581,
+                                 61365,
+                                 119328,
+                                 80093,
+                                 45143,
+                                 73566,
+                                 61625,
+                                 24563,
+                                 13957,
+                                 28618,
+                                 151232,
+                                 58133
+                             ],
+                       "totalQ":  24405,
+                       "totalV":  937204
+                   },
+                   {
+                       "name":  "曠野玫瑰",
+                       "q":  [
+                                 4572,
+                                 4054,
+                                 553,
+                                 1005,
+                                 848,
+                                 1402,
+                                 995,
+                                 1345,
+                                 531,
+                                 850,
+                                 3040,
+                                 1794
+                             ],
+                       "v":  [
+                                 545448,
+                                 410128,
+                                 93260,
+                                 144289,
+                                 131324,
+                                 240969,
+                                 180188,
+                                 197462,
+                                 75127,
+                                 122935,
+                                 519585,
+                                 364401
+                             ],
+                       "totalQ":  20989,
+                       "totalV":  3025116
+                   },
+                   {
+                       "name":  "竹萃保濕",
+                       "q":  [
+                                 1883,
+                                 615,
+                                 484,
+                                 2379,
+                                 559,
+                                 3269,
+                                 745,
+                                 431,
+                                 2583,
+                                 323,
+                                 1424,
+                                 2899
+                             ],
+                       "v":  [
+                                 290986,
+                                 72571,
+                                 84648,
+                                 287613,
+                                 85672,
+                                 435603,
+                                 135868,
+                                 77691,
+                                 382322,
+                                 58031,
+                                 253614,
+                                 470608
+                             ],
+                       "totalQ":  17594,
+                       "totalV":  2635227
+                   },
+                   {
+                       "name":  "茶花控油",
+                       "q":  [
+                                 2332,
+                                 428,
+                                 823,
+                                 1163,
+                                 544,
+                                 2629,
+                                 785,
+                                 471,
+                                 1418,
+                                 1131,
+                                 2341,
+                                 2754
+                             ],
+                       "v":  [
+                                 373669,
+                                 66080,
+                                 156448,
+                                 173461,
+                                 92258,
+                                 416339,
+                                 158664,
+                                 97415,
+                                 210040,
+                                 232011,
+                                 440654,
+                                 492221
+                             ],
+                       "totalQ":  16819,
+                       "totalV":  2909260
+                   },
+                   {
+                       "name":  "香檳玫瑰護色",
+                       "q":  [
+                                 1155,
+                                 2145,
+                                 720,
+                                 1571,
+                                 534,
+                                 1396,
+                                 1003,
+                                 1768,
+                                 1013,
+                                 1407,
+                                 2437,
+                                 1521
+                             ],
+                       "v":  [
+                                 189835,
+                                 343024,
+                                 125312,
+                                 249343,
+                                 94655,
+                                 240201,
+                                 191654,
+                                 312031,
+                                 122117,
+                                 294965,
+                                 470082,
+                                 258927
+                             ],
+                       "totalQ":  16670,
+                       "totalV":  2892146
+                   },
+                   {
+                       "name":  "枸杞豐盈",
+                       "q":  [
+                                 847,
+                                 2040,
+                                 474,
+                                 735,
+                                 688,
+                                 2168,
+                                 1084,
+                                 1747,
+                                 1291,
+                                 409,
+                                 1817,
+                                 1360
+                             ],
+                       "v":  [
+                                 152153,
+                                 385706,
+                                 93421,
+                                 133164,
+                                 126730,
+                                 367965,
+                                 223462,
+                                 330473,
+                                 231444,
+                                 81051,
+                                 370015,
+                                 229358
+                             ],
+                       "totalQ":  14660,
+                       "totalV":  2724942
+                   },
+                   {
+                       "name":  "木蘭",
+                       "q":  [
+                                 1176,
+                                 987,
+                                 1362,
+                                 1149,
+                                 1079,
+                                 1216,
+                                 1085,
+                                 1121,
+                                 1283,
+                                 1733,
+                                 891,
+                                 1474
+                             ],
+                       "v":  [
+                                 107232,
+                                 89899,
+                                 124098,
+                                 104674,
+                                 105263,
+                                 118885,
+                                 96930,
+                                 100201,
+                                 114715,
+                                 177401,
+                                 88981,
+                                 147188
+                             ],
+                       "totalQ":  14556,
+                       "totalV":  1375467
+                   },
+                   {
+                       "name":  "蒲公英兒童溫和",
+                       "q":  [
+                                 1832,
+                                 368,
+                                 689,
+                                 754,
+                                 661,
+                                 2076,
+                                 815,
+                                 530,
+                                 314,
+                                 1767,
+                                 2449,
+                                 1061
+                             ],
+                       "v":  [
+                                 270665,
+                                 62336,
+                                 118629,
+                                 106417,
+                                 121425,
+                                 331970,
+                                 145503,
+                                 96851,
+                                 52998,
+                                 285927,
+                                 429008,
+                                 183847
+                             ],
+                       "totalQ":  13316,
+                       "totalV":  2205576
+                   },
+                   {
+                       "name":  "綠意輕風",
+                       "q":  [
+                                 0,
+                                 3000,
+                                 0,
+                                 3000,
+                                 0,
+                                 4004,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0
+                             ],
+                       "v":  [
+                                 0,
+                                 541440,
+                                 0,
+                                 543060,
+                                 0,
+                                 787266,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0
+                             ],
+                       "totalQ":  10004,
+                       "totalV":  1871766
+                   },
+                   {
+                       "name":  "桃花豐盈",
+                       "q":  [
+                                 694,
+                                 338,
+                                 679,
+                                 974,
+                                 497,
+                                 1162,
+                                 1090,
+                                 447,
+                                 323,
+                                 400,
+                                 1892,
+                                 480
+                             ],
+                       "v":  [
+                                 125447,
+                                 61365,
+                                 127302,
+                                 149487,
+                                 88500,
+                                 208234,
+                                 222942,
+                                 89193,
+                                 58403,
+                                 77821,
+                                 396149,
+                                 86474
+                             ],
+                       "totalQ":  8976,
+                       "totalV":  1691317
+                   },
+                   {
+                       "name":  "紫玫瑰護色",
+                       "q":  [
+                                 310,
+                                 275,
+                                 499,
+                                 1286,
+                                 456,
+                                 1584,
+                                 746,
+                                 352,
+                                 236,
+                                 311,
+                                 2021,
+                                 555
+                             ],
+                       "v":  [
+                                 56978,
+                                 46938,
+                                 93665,
+                                 194796,
+                                 89210,
+                                 241130,
+                                 148895,
+                                 68406,
+                                 44549,
+                                 61726,
+                                 392548,
+                                 83129
+                             ],
+                       "totalQ":  8631,
+                       "totalV":  1521970
+                   },
+                   {
+                       "name":  "沁漾紅茶控油",
+                       "q":  [
+                                 3,
+                                 0,
+                                 3586,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 7,
+                                 0,
+                                 1,
+                                 0,
+                                 3421
+                             ],
+                       "v":  [
+                                 597,
+                                 0,
+                                 743410,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 1456,
+                                 0,
+                                 208,
+                                 0,
+                                 746361
+                             ],
+                       "totalQ":  7018,
+                       "totalV":  1492032
+                   },
+                   {
+                       "name":  "絲漾玫瑰保濕",
+                       "q":  [
+                                 0,
+                                 3405,
+                                 0,
+                                 0,
+                                 0,
+                                 3475,
+                                 0,
+                                 0,
+                                 0,
+                                 1,
+                                 0,
+                                 0
+                             ],
+                       "v":  [
+                                 0,
+                                 719510,
+                                 0,
+                                 0,
+                                 0,
+                                 754109,
+                                 0,
+                                 0,
+                                 0,
+                                 220,
+                                 0,
+                                 0
+                             ],
+                       "totalQ":  6881,
+                       "totalV":  1473839
+                   },
+                   {
+                       "name":  "辣木",
+                       "q":  [
+                                 367,
+                                 351,
+                                 312,
+                                 715,
+                                 376,
+                                 657,
+                                 634,
+                                 433,
+                                 260,
+                                 419,
+                                 679,
+                                 380
+                             ],
+                       "v":  [
+                                 75627,
+                                 66683,
+                                 61655,
+                                 125203,
+                                 81023,
+                                 151041,
+                                 151491,
+                                 104174,
+                                 55610,
+                                 99895,
+                                 127293,
+                                 85027
+                             ],
+                       "totalQ":  5583,
+                       "totalV":  1184722
+                   },
+                   {
+                       "name":  "犬香薷",
+                       "q":  [
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 2500,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 1,
+                                 0,
+                                 0
+                             ],
+                       "v":  [
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 180050,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 72,
+                                 0,
+                                 0
+                             ],
+                       "totalQ":  2501,
+                       "totalV":  180122
+                   },
+                   {
+                       "name":  "香桃木控油",
+                       "q":  [
+                                 211,
+                                 171,
+                                 215,
+                                 182,
+                                 177,
+                                 253,
+                                 237,
+                                 218,
+                                 121,
+                                 180,
+                                 265,
+                                 187
+                             ],
+                       "v":  [
+                                 31379,
+                                 26270,
+                                 31726,
+                                 25635,
+                                 25116,
+                                 38149,
+                                 37964,
+                                 35714,
+                                 17522,
+                                 28660,
+                                 38816,
+                                 30640
+                             ],
+                       "totalQ":  2417,
+                       "totalV":  367591
+                   },
+                   {
+                       "name":  "香檸草修護",
+                       "q":  [
+                                 278,
+                                 249,
+                                 279,
+                                 135,
+                                 139,
+                                 125,
+                                 103,
+                                 107,
+                                 100,
+                                 77,
+                                 112,
+                                 161
+                             ],
+                       "v":  [
+                                 190285,
+                                 155374,
+                                 179324,
+                                 91085,
+                                 96905,
+                                 83914,
+                                 76438,
+                                 78101,
+                                 76742,
+                                 64676,
+                                 88102,
+                                 142586
+                             ],
+                       "totalQ":  1865,
+                       "totalV":  1323532
+                   },
+                   {
+                       "name":  "薔薇護色",
+                       "q":  [
+                                 168,
+                                 128,
+                                 209,
+                                 134,
+                                 119,
+                                 101,
+                                 133,
+                                 119,
+                                 109,
+                                 67,
+                                 87,
+                                 139
+                             ],
+                       "v":  [
+                                 130702,
+                                 91974,
+                                 144309,
+                                 98573,
+                                 91964,
+                                 79814,
+                                 106064,
+                                 90452,
+                                 81980,
+                                 57123,
+                                 73953,
+                                 123455
+                             ],
+                       "totalQ":  1513,
+                       "totalV":  1170363
+                   },
+                   {
+                       "name":  "雪松橙控油",
+                       "q":  [
+                                 89,
+                                 47,
+                                 172,
+                                 140,
+                                 125,
+                                 219,
+                                 94,
+                                 90,
+                                 102,
+                                 120,
+                                 108,
+                                 126
+                             ],
+                       "v":  [
+                                 77376,
+                                 40758,
+                                 112921,
+                                 95548,
+                                 91841,
+                                 159000,
+                                 73619,
+                                 65406,
+                                 77134,
+                                 85854,
+                                 83020,
+                                 101782
+                             ],
+                       "totalQ":  1432,
+                       "totalV":  1064259
+                   },
+                   {
+                       "name":  "木蘭保濕",
+                       "q":  [
+                                 74,
+                                 24,
+                                 24,
+                                 35,
+                                 53,
+                                 668,
+                                 34,
+                                 28,
+                                 26,
+                                 22,
+                                 28,
+                                 54
+                             ],
+                       "v":  [
+                                 67057,
+                                 21912,
+                                 21336,
+                                 31014,
+                                 47064,
+                                 308798,
+                                 30210,
+                                 24892,
+                                 23096,
+                                 19553,
+                                 24870,
+                                 46783
+                             ],
+                       "totalQ":  1070,
+                       "totalV":  666585
+                   },
+                   {
+                       "name":  "雲朗精油",
+                       "q":  [
+                                 0,
+                                 0,
+                                 72,
+                                 0,
+                                 72,
+                                 0,
+                                 0,
+                                 216,
+                                 0,
+                                 0,
+                                 0,
+                                 108
+                             ],
+                       "v":  [
+                                 0,
+                                 0,
+                                 8605,
+                                 0,
+                                 8604,
+                                 0,
+                                 0,
+                                 25814,
+                                 0,
+                                 0,
+                                 0,
+                                 12906
+                             ],
+                       "totalQ":  468,
+                       "totalV":  55929
+                   },
+                   {
+                       "name":  "雲朗香氛",
+                       "q":  [
+                                 0,
+                                 0,
+                                 96,
+                                 312,
+                                 41,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0
+                             ],
+                       "v":  [
+                                 0,
+                                 0,
+                                 12537,
+                                 40739,
+                                 5351,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0
+                             ],
+                       "totalQ":  449,
+                       "totalV":  58627
+                   },
+                   {
+                       "name":  "薰衣草深層",
+                       "q":  [
+                                 47,
+                                 12,
+                                 16,
+                                 31,
+                                 36,
+                                 39,
+                                 22,
+                                 26,
+                                 19,
+                                 9,
+                                 18,
+                                 48
+                             ],
+                       "v":  [
+                                 44298,
+                                 10904,
+                                 14538,
+                                 28619,
+                                 33528,
+                                 36131,
+                                 19702,
+                                 23270,
+                                 17021,
+                                 7443,
+                                 16110,
+                                 42902
+                             ],
+                       "totalQ":  323,
+                       "totalV":  294466
+                   },
+                   {
+                       "name":  "繡線菊舒緩",
+                       "q":  [
+                                 13,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0
+                             ],
+                       "v":  [
+                                 1465,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0
+                             ],
+                       "totalQ":  13,
+                       "totalV":  1465
+                   },
+                   {
+                       "name":  "Bio-咖啡因強健",
+                       "q":  [
+                                 0,
+                                 0,
+                                 1,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 1,
+                                 0,
+                                 0
+                             ],
+                       "v":  [
+                                 0,
+                                 0,
+                                 58,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 58,
+                                 0,
+                                 0
+                             ],
+                       "totalQ":  2,
+                       "totalV":  116
+                   }
+               ],
+    "totalByMonthQ":  [
+                          60236,
+                          37699,
+                          16536,
+                          24917,
+                          14207,
+                          38055,
+                          16205,
+                          15851,
+                          16417,
+                          14484,
+                          37649,
+                          36366
+                      ],
+    "totalByMonthV":  [
+                          6216710,
+                          5490282,
+                          3327869,
+                          3977378,
+                          2514288,
+                          7112504,
+                          3309120,
+                          2969750,
+                          2688527,
+                          2633465,
+                          7321038,
+                          6342407
+                      ]
+}
+;
+const N = DATA.series.length;
+const months = DATA.months;
+const fmt = n => n.toLocaleString('en-US');
+// 以黃金角分散色相，產生可區分色盤
+const colors = DATA.series.map((_,i)=>`hsl(${Math.round((i*137.508)%360)},62%,44%)`);
+DATA.series.forEach((s,i)=>{ s.color=colors[i]; s.avg = s.totalQ? Math.round(s.totalV/s.totalQ):0; });
+const sumQ = DATA.series.reduce((a,s)=>a+s.totalQ,0);
+const sumV = DATA.series.reduce((a,s)=>a+s.totalV,0);
+DATA.series.forEach(s=> s.shareQ = sumQ? s.totalQ/sumQ:0 );
+
+// KPI
+document.getElementById('k1').textContent = fmt(sumQ);
+document.getElementById('k2').textContent = 'NT$ '+fmt(sumV);
+document.getElementById('k3').textContent = N;
+document.getElementById('k4').textContent = 'NT$ '+fmt(Math.round(sumV/sumQ));
+const top3 = [...DATA.series].sort((a,b)=>b.totalQ-a.totalQ).slice(0,3).reduce((a,s)=>a+s.totalQ,0);
+document.getElementById('k5').textContent = (top3/sumQ*100).toFixed(1)+'%';
+
+let metric = 'q';
+const order = [...DATA.series].sort((a,b)=>b.totalQ-a.totalQ);
+const visible = new Set(order.slice(0,8).map(s=>s.name));
+
+// ---- 圖表 ----
+const svg = document.getElementById('chart');
+const tip = document.getElementById('tip');
+const NS='http://www.w3.org/2000/svg';
+const W=980,H=470, M={t:20,r:18,b:46,l:74};
+const plotW=W-M.l-M.r, plotH=H-M.t-M.b;
+function el(tag,attr){const e=document.createElementNS(NS,tag);for(const k in attr)e.setAttribute(k,attr[k]);return e;}
+
+function draw(){
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const shown = DATA.series.filter(s=>visible.has(s.name));
+  let max = 0;
+  shown.forEach(s=> s[metric].forEach(v=>{ if(v>max) max=v; }));
+  if(max<=0) max=1;
+  // 美化上界
+  const pow=Math.pow(10,Math.floor(Math.log10(max)));
+  const niceMax=Math.ceil(max/pow)*pow;
+  const x = i => M.l + (months.length===1?plotW/2:i*plotW/(months.length-1));
+  const y = v => M.t + plotH - (v/niceMax)*plotH;
+
+  // y 格線 + 標籤
+  const steps=5;
+  for(let i=0;i<=steps;i++){
+    const val=niceMax*i/steps, yy=y(val);
+    svg.appendChild(el('line',{x1:M.l,y1:yy,x2:W-M.r,y2:yy,stroke:'var(--grid)','stroke-width':1}));
+    const t=el('text',{x:M.l-8,y:yy+4,'text-anchor':'end','font-size':11,fill:'#999'});
+    t.textContent = metric==='v' ? (val>=1e6?(val/1e6).toFixed(1)+'M':val>=1e3?Math.round(val/1e3)+'k':val) : fmt(val);
+    svg.appendChild(t);
+  }
+  // x 標籤
+  months.forEach((m,i)=>{
+    const t=el('text',{x:x(i),y:H-M.b+18,'text-anchor':'middle','font-size':10.5,fill:'#888'});
+    t.textContent=m.slice(2); svg.appendChild(t);
+  });
+  // y 軸名
+  const yl=el('text',{x:16,y:M.t+plotH/2,'font-size':11.5,fill:'#666',transform:`rotate(-90 16 ${M.t+plotH/2})`,'text-anchor':'middle'});
+  yl.textContent = metric==='v'?'銷售金額（NT$）':'銷售數量（瓶）'; svg.appendChild(yl);
+
+  // 折線
+  shown.forEach(s=>{
+    const pts = s[metric].map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+    svg.appendChild(el('polyline',{points:pts,fill:'none',stroke:s.color,'stroke-width':2,'stroke-linejoin':'round','stroke-linecap':'round',opacity:.92}));
+    s[metric].forEach((v,i)=>{
+      const c=el('circle',{cx:x(i),cy:y(v),r:3.2,fill:s.color,stroke:'#fff','stroke-width':1});
+      c.addEventListener('mouseenter',ev=>{
+        const val = metric==='v' ? 'NT$ '+fmt(v) : fmt(v)+' 瓶';
+        tip.innerHTML = `<b>${s.name}</b> · ${months[i]}<br>${val}`;
+        const box=svg.getBoundingClientRect();
+        const sx = box.left + window.scrollX + x(i)/W*box.width;
+        const sy = box.top + window.scrollY + y(v)/H*box.height;
+        tip.style.left=sx+'px'; tip.style.top=sy+'px'; tip.style.opacity=1;
+      });
+      c.addEventListener('mouseleave',()=>tip.style.opacity=0);
+      svg.appendChild(c);
+    });
+  });
+  if(shown.length===0){
+    const t=el('text',{x:W/2,y:H/2,'text-anchor':'middle','font-size':14,fill:'#aaa'});
+    t.textContent='請於下方圖例選擇要顯示的系列'; svg.appendChild(t);
+  }
+}
+
+// ---- 圖例 ----
+const legend=document.getElementById('legend');
+function buildLegend(){
+  legend.innerHTML='';
+  order.forEach(s=>{
+    const d=document.createElement('div');
+    d.className='lg'+(visible.has(s.name)?' on':'');
+    d.innerHTML=`<span class="dot" style="background:${s.color}"></span>${s.name}`;
+    d.onclick=()=>{ visible.has(s.name)?visible.delete(s.name):visible.add(s.name); buildLegend(); draw(); };
+    legend.appendChild(d);
+  });
+}
+
+// ---- 排行表 ----
+let sortK='totalQ', sortAsc=false;
+const tbody=document.querySelector('#rank tbody');
+function buildTable(){
+  const rows=[...DATA.series].map(s=>({...s, avg:s.avg, shareQ:s.shareQ}));
+  rows.sort((a,b)=>{ let av=a[sortK],bv=b[sortK]; if(sortK==='name'){return sortAsc?(''+av).localeCompare(bv,'zh-Hant'):(''+bv).localeCompare(av,'zh-Hant');} return sortAsc?av-bv:bv-av; });
+  tbody.innerHTML='';
+  rows.forEach((s,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><span class="sw" style="background:${s.color}"></span>${s.name}</td>`+
+      `<td>${fmt(s.totalQ)}</td>`+
+      `<td>${fmt(s.totalV)}</td>`+
+      `<td>${fmt(s.avg)}</td>`+
+      `<td>${(s.shareQ*100).toFixed(1)}%</td>`;
+    tbody.appendChild(tr);
+  });
+}
+document.querySelectorAll('#rank th').forEach(th=>{
+  th.onclick=()=>{ const k=th.dataset.k; if(sortK===k)sortAsc=!sortAsc; else {sortK=k;sortAsc=false;} buildTable(); };
+});
+
+// ---- 控制 ----
+document.getElementById('tabs').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON')return;
+  metric=e.target.dataset.m;
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('active',b===e.target));
+  draw();
+});
+document.querySelector('.toolbar').addEventListener('click',e=>{
+  const act=e.target.dataset.act; if(!act)return;
+  visible.clear();
+  if(act==='top8') order.slice(0,8).forEach(s=>visible.add(s.name));
+  else if(act==='all') DATA.series.forEach(s=>visible.add(s.name));
+  buildLegend(); draw();
+});
+
+buildLegend(); buildTable(); draw();
+</script>
+</body>
+</html>
