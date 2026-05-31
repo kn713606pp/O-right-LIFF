@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>倉吉副總 · 週報駕駛艙 W22</title>
+<style>
+:root{--bg:#0f1419;--card:#1a2129;--line:#2a333d;--txt:#e6edf3;--mut:#8b98a5;--grn:#2ea043;--red:#d9534f;--amb:#d99a2b;--blu:#388bfd;--accent:#3fb950}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;line-height:1.6;padding:16px;max-width:880px;margin:0 auto;font-size:16px}
+h1{font-size:1.5rem;margin-bottom:4px}
+.sub{color:var(--mut);font-size:.85rem;margin-bottom:16px}
+.tag{display:inline-block;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:.78rem;color:var(--mut);margin-right:6px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+h2{font-size:1.1rem;margin-bottom:10px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+h2 .arw{margin-left:auto;color:var(--mut);font-size:.8rem;transition:transform .2s}
+section.collapsed h2 .arw{transform:rotate(-90deg)}
+section.collapsed .body{display:none}
+.item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.item:last-child{border-bottom:none}
+.item input{margin-top:5px;width:18px;height:18px;flex-shrink:0;accent-color:var(--accent)}
+.item label{flex:1;cursor:pointer}
+.item.done label{opacity:.45;text-decoration:line-through}
+.lv{font-size:.72rem;font-weight:700;padding:1px 6px;border-radius:4px;margin-right:5px;white-space:nowrap}
+.lv.g{background:rgba(46,160,67,.18);color:var(--grn)}
+.lv.r{background:rgba(217,83,79,.18);color:var(--red)}
+.dept{color:var(--blu);font-size:.8rem}
+.dim{color:var(--mut);font-size:.88rem}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+td,th{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mut);font-weight:600;font-size:.8rem}
+.d{font-weight:700;white-space:nowrap;color:var(--accent)}
+.hot td .d{color:var(--red)}
+ul.plain{list-style:none}
+ul.plain li{padding:7px 0;border-bottom:1px solid var(--line);font-size:.92rem}
+ul.plain li:last-child{border-bottom:none}
+ul.plain li::before{content:"▸ ";color:var(--mut)}
+.ok li::before{content:"✓ ";color:var(--grn)}
+a{color:var(--blu);text-decoration:none}
+.foot{color:var(--mut);font-size:.78rem;text-align:center;margin-top:18px;padding-bottom:30px}
+.rst{background:none;border:1px solid var(--line);color:var(--mut);border-radius:6px;padding:4px 10px;font-size:.78rem;cursor:pointer;float:right}
+</style>
+</head>
+<body>
+<h1>🧭 倉吉副總 · 週報駕駛艙</h1>
+<div class="sub">
+<span class="tag">W22</span><span class="tag">週報週 5/22–5/28</span><span class="tag">更新 2026-05-30</span><br>
+一個入口看完三件事：本週要我拍的／要我親自做的／期限。勾選狀態自動存本機。
+<button class="rst" onclick="if(confirm('清除所有勾選？')){try{localStorage.clear()}catch(e){}location.reload()}">重置勾選</button>
+</div>
+
+<section>
+<h2>⚡ 本週要我拍／定案 <span class="arw">▾</span></h2>
+<div class="body">
+<div class="dim" style="margin-bottom:8px">🟩 副總可直接拍｜🟥 超權限需上葛董</div>
+<div class="item"><input type="checkbox" id="p1"><label for="p1"><span class="lv r">🟥</span><b>鍋爐汰換</b> 採購核決＋換裝排程 <span class="dept">運籌·公安</span><br><span class="dim">本昭 1 噸全新 542,850，5/20 已送請購待董總簽核；定 6/30~7/2 換裝＋停爐生產安排</span></label></div>
+<div class="item"><input type="checkbox" id="p2"><label for="p2"><span class="lv r">🟥</span><b>電腦類資產出售簽呈</b> <span class="dept">行政·葛董退過一次</span><br><span class="dim">5/22 已與我＋財務長赴高揚倉重盤；簽呈 6/2 送出前給我看，賣哪些/為何/殘值一頁講清</span></label></div>
+<div class="item"><input type="checkbox" id="p3"><label for="p3"><span class="lv g">🟩</span><b>綠色走廊鋼構鏽蝕</b> 方案定案 <span class="dept">能設·結構安全</span><br><span class="dim">建議 B 鐵氟龍 69,000（A 案 123,000，含吊車）；櫻花樹高空防護。我權限內可直接拍</span></label></div>
+<div class="item"><input type="checkbox" id="p4"><label for="p4"><span class="lv g">🟩</span><b>董座辦公室套窗</b> 範圍定案 <span class="dept">能設</span><br><span class="dim">單窗 55,000 vs 建築師含滲水牆面 276,711；先定「只換窗 or 連牆面」</span></label></div>
+<div class="item"><input type="checkbox" id="p5"><label for="p5"><span class="lv g">🟩</span><b>銀杏護髮精質霜</b> 報廢/領用裁示 <span class="dept">品保·拖 65+ 天</span><br><span class="dim">品保建議「員工登記領用」；裁完同步倉庫/生管，補損失與拖延檢討</span></label></div>
+<div class="item"><input type="checkbox" id="p6"><label for="p6"><span class="lv g">🟩</span><b>全聯洗碗慕絲</b> 文案定版 <span class="dept">運籌·有訂單卡點</span><br><span class="dim">料 6/3 進、空瓶已下單，卡在文案需 PM 向葛董面報；我直接幫排葛董面報</span></label></div>
+</div>
+</section>
+
+<section>
+<h2>🙋 要我親自執行／請示 <span class="arw">▾</span></h2>
+<div class="body">
+<div class="item"><input type="checkbox" id="e1"><label for="e1"><b>6/2 環保標章會議</b> — 葛董聯繫上彭啓明部長，葛董/我/仁傑出席；<b>會前簡報葛董未裁示，5/30 再追</b></label></div>
+<div class="item"><input type="checkbox" id="e2"><label for="e2"><b>蘇丹紅公平法檢舉函</b> — 仁傑 5/21–29 請示葛董 4 次未裁；我幫推，6/1 再追讓葛董一句話能拍</label></div>
+<div class="item"><input type="checkbox" id="e3"><label for="e3"><b>6/4 股東會前會、6/10 年度股東會</b> — 法務隨行</label></div>
+<div class="item"><input type="checkbox" id="e4"><label for="e4"><b>香水／高酒精 5 年效期證明</b> — 待我執行；運籌備佐證；RD 高楊倉留樣明年取樣</label></div>
+</div>
+</section>
+
+<section>
+<h2>🎯 指定追蹤（盯到結案） <span class="arw">▾</span></h2>
+<div class="body">
+<div class="item"><input type="checkbox" id="t1"><label for="t1"><b>四胜肽養髮液功效測試</b> <span class="dept">RD＋運籌</span> — 5/18 接洽聯新了解 IRB；要台/陸/功效三軌時程，別停在「了解流程」</label></div>
+<div class="item"><input type="checkbox" id="t2"><label for="t2"><b>漸進式染髮（洗沐黃變/洗黑）</b> <span class="dept">RD＋品保</span> — 測快兩個月，5/20 請廠商壓原料味；葛董等階段結論＋DHI 專利回音</label></div>
+<div class="item"><input type="checkbox" id="t3"><label for="t3"><b>批文申請缺失檢討</b> <span class="dept">RD＋中國批文</span> — 缺失盤點＋補件計畫</label></div>
+<div class="item"><input type="checkbox" id="t4"><label for="t4"><b>無印良品自主檢查表 6/5 前回覆</b> <span class="dept">品保＋代工</span> ⏰硬期限；責任釐清，6/3 前彙整呈我</label></div>
+</div>
+</section>
+
+<section>
+<h2>⏰ 期限雷達 <span class="arw">▾</span></h2>
+<div class="body">
+<table>
+<tr><th>日期</th><th>事項</th><th>負責</th></tr>
+<tr class="hot"><td class="d">6/1</td><td>蘇丹紅檢舉函<b>再追葛董裁示</b>＋啟動日</td><td>法務 仁傑</td></tr>
+<tr><td class="d">6/1</td><td>FDA 換瓶器公文追蹤</td><td>法務</td></tr>
+<tr class="hot"><td class="d">6/2</td><td><b>電腦資產出售簽呈送出</b>（送前給我看）</td><td>行政 小甄</td></tr>
+<tr class="hot"><td class="d">6/2</td><td><b>環保標章會議</b>（葛董/我/仁傑）</td><td>副總·法務</td></tr>
+<tr><td class="d">6/2</td><td>端午賀卡請示／氣泡水機安裝／溫室氣體送 BSI／環境部座談會</td><td>行政·品保·法務</td></tr>
+<tr class="hot"><td class="d">6/3</td><td><b>全聯洗碗慕絲原料進貨完成</b>（9 萬瓶）／會議室預約開放</td><td>運籌·行政</td></tr>
+<tr class="hot"><td class="d">6/5</td><td><b>BSI 碳足跡致電</b>（窗口出國至此）／溫盤憑證／亦鴻證據第一批／上海智財季報／無印良品檢查表</td><td>品保·法務·代工</td></tr>
+<tr><td class="d">6/9</td><td>環保局<b>回函版本呈我確認</b>（留 3 天緩衝）</td><td>職安 趙永儀</td></tr>
+<tr class="hot"><td class="d">6/10</td><td><b>年度股東會</b>（前會 6/4）</td><td>副總·法務</td></tr>
+<tr class="hot"><td class="d">6/15</td><td><b>環保局廢棄物申報法定改善期限</b>（逾期罰 6 千～1 千萬）／上海智財解案</td><td>職安·法務</td></tr>
+<tr><td class="d">6/18</td><td>Q2 特殊員購出貨</td><td>行政 Toby</td></tr>
+<tr><td class="d">6/30–7/2</td><td>鍋爐換裝（停爐生產安排）</td><td>運籌 木雄</td></tr>
+<tr><td class="d">6 月底</td><td>全聯 9 萬瓶入庫／供應商永續評級自評表／RD CMR 自評／220ml 涼感新品入庫</td><td>運籌·研發</td></tr>
+</table>
+</div>
+</section>
+
+<section>
+<h2>🔴 逾期／長期未結 <span class="arw">▾</span></h2>
+<div class="body">
+<ul class="plain">
+<li><b>蘇丹紅檢舉函</b>：請示葛董 4 次未裁（6/1 再追）</li>
+<li>上海智財管制 50+ 天（6/15 設解案硬期限）</li>
+<li>全廠漏水卡東鋼保固票（年度；先設集水盤導流，半年無漏才退票）</li>
+<li>廢塑膠桶化學混合物 600kg＋蘇丹紅玻璃瓶 囤高揚倉（年度；與職安申報、法務蘇丹紅同一條線）</li>
+<li>BSI 產品碳足跡證書（卡內部行政＋窗口出國至 6/5）</li>
+</ul>
+</div>
+</section>
+
+<section>
+<h2>✅ 已閉環（先肯定用） <span class="arw">▾</span></h2>
+<div class="body">
+<ul class="plain ok">
+<li>能設 綠建築黃金級標章證書取得（115/2/12–120/2/11）</li>
+<li>能設 智慧電 E Power OS 三案結案（能源看板用公版）</li>
+<li>品保 香檳玫瑰 SLMI 再製耐凍合格＋「此配方先不用替代料」納入 SOP</li>
+<li>研發 歐盟 82 項致敏源全產品成分表（5/21 如期）</li>
+<li>法務 蝦皮二號店錄影爭議 葛董定調結案</li>
+<li>職安 王莉金濺眼根因 → 閉環（殘留：橫向掃同類報廢作業風險）</li>
+</ul>
+</div>
+</section>
+
+<div class="foot">
+三入口同源：本頁＝ <code>_駕駛艙.md</code>（Obsidian）＝ 對話式「重生駕駛艙」。<br>
+資料來源：W22 七部門來源頁＋語氣版回饋。© 倉吉副總週報知識庫
+</div>
+
+<script>
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+// 勾選持久化（localStorage 失效時仍可正常切換）
+document.querySelectorAll('.item input[type=checkbox]').forEach(cb=>{
+  const k='ck_'+cb.id;
+  if(lsGet(k)==='1'){cb.checked=true;cb.closest('.item').classList.add('done');}
+  cb.addEventListener('change',()=>{
+    lsSet(k,cb.checked?'1':'0');
+    cb.closest('.item').classList.toggle('done',cb.checked);
+  });
+});
+// 區塊摺疊
+document.querySelectorAll('section h2').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('section').classList.toggle('collapsed'));
+});
+</script>
+</body>
+</html>
