@@ -1,0 +1,136 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>倉吉任務板</title>
+<link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoi5YCJ5ZCJ5Lu75YuZ5p2/Iiwic2hvcnRfbmFtZSI6IuS7u+WLmeadvyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwZjExMTUiLCJ0aGVtZV9jb2xvciI6IiMwZjExMTUiLCJpY29ucyI6W3sic3JjIjoiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCNGJXeHVjejBpYUhSMGNEb3ZMM2QzZHk1M015NXZjbWN2TWpBd01DOXpkbWNpSUhkcFpIUm9QU0kxTVRJaUlHaGxhV2RvZEQwaU5URXlJajQ4Y21WamRDQjNhV1IwYUQwaU5URXlJaUJvWldsbmFIUTlJalV4TWlJZ2NuZzlJamsySWlCbWFXeHNQU0lqTkdZNFkyWm1JaTgrUEhSbGVIUWdlRDBpTlRBbElpQjVQU0kxTkNVaUlHWnZiblF0YzJsNlpUMGlNekF3SWlCMFpYaDBMV0Z1WTJodmNqMGliV2xrWkd4bElpQmtiMjFwYm1GdWRDMWlZWE5sYkdsdVpUMGliV2xrWkd4bElqN3duNWVDNzdpUFBDOTBaWGgwUGp3dmMzWm5QZz09Iiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwiLCJwdXJwb3NlIjoiYW55IG1hc2thYmxlIn1dfQ==">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="任務板">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9Ijk2IiBmaWxsPSIjNGY4Y2ZmIi8+PHRleHQgeD0iNTAlIiB5PSI1NCUiIGZvbnQtc2l6ZT0iMzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIj7wn5eC77iPPC90ZXh0Pjwvc3ZnPg==">
+<style>
+  :root{--bg:#0f1115;--card:#1a1d24;--card2:#21252e;--line:#2c313c;--txt:#e8ebf0;--sub:#9aa3b2;--accent:#4f8cff;
+    --pat:#4f8cff;--self:#22c55e;--deleg:#f59e0b;--memo:#94a3b8;--red:#ef4444;--yellow:#eab308;--green:#22c55e;--done:#64748b;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",system-ui,sans-serif;line-height:1.55;padding:14px 12px 60px}
+  .wrap{max-width:760px;margin:0 auto}
+  h1{font-size:21px;margin:4px 0 2px;display:flex;align-items:center;gap:8px}
+  .meta{color:var(--sub);font-size:12.5px;margin-bottom:10px}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+  .bar a,.bar button{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px;text-decoration:none;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+  .bar a.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin-bottom:14px}
+  .legend span{display:inline-flex;align-items:center;gap:4px}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  details{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden}
+  summary{list-style:none;cursor:pointer;padding:13px 15px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  summary::-webkit-details-marker{display:none}
+  summary .count{color:var(--sub);font-weight:400;font-size:13px}
+  .sec-body{padding:4px 12px 12px}
+  .empty{color:var(--sub);font-size:13px;padding:8px 4px}
+  .task{background:var(--card2);border:1px solid var(--line);border-left:5px solid var(--line);border-radius:11px;padding:11px 12px;margin:9px 0;position:relative}
+  .task.s-red{border-left-color:var(--red)} .task.s-yellow{border-left-color:var(--yellow)}
+  .task.s-green{border-left-color:var(--green)} .task.s-done{border-left-color:var(--done);opacity:.6}
+  .task .top{display:flex;align-items:flex-start;gap:9px}
+  .task .chk{margin-top:3px;width:18px;height:18px;flex:0 0 auto;accent-color:var(--green)}
+  .task .title{font-size:15px;font-weight:600;flex:1}
+  .task.done .title{text-decoration:line-through;color:var(--sub)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:7px 0 0 27px}
+  .chip{font-size:11.5px;padding:2px 8px;border-radius:20px;background:#000a;border:1px solid var(--line);color:var(--sub)}
+  .chip.pat{color:var(--pat);border-color:var(--pat)} .chip.self{color:var(--self);border-color:var(--self)}
+  .chip.deleg{color:var(--deleg);border-color:var(--deleg)} .chip.memo{color:var(--memo)}
+  .chip.due{color:#fff;background:#7f1d1d;border-color:#b91c1c;font-weight:600}
+  .chip.due.soon{background:#78350f;border-color:#b45309} .chip.due.far{background:#1e293b;border-color:#334155;color:var(--sub)}
+  .next{margin:7px 0 0 27px;font-size:13px;color:var(--sub)} .next b{color:var(--txt);font-weight:600}
+  .id{font-family:ui-monospace,monospace;font-size:11px;color:var(--sub);margin-left:27px}
+  .note{font-size:12.5px;color:var(--sub);background:var(--card);border:1px dashed var(--line);border-radius:11px;padding:11px 13px;margin-top:8px}
+  .pending{background:#161a22;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+  .pending h3{margin:0 0 6px;font-size:14px;color:var(--accent)}
+  .gate{max-width:360px;margin:18vh auto 0;text-align:center}
+  .gate input{width:100%;padding:13px;font-size:17px;border-radius:11px;border:1px solid var(--line);background:var(--card2);color:var(--txt);margin:14px 0}
+  .gate button{width:100%;padding:13px;font-size:16px;border:0;border-radius:11px;background:var(--accent);color:#fff;font-weight:700}
+  .gate .err{color:var(--red);font-size:13px;min-height:18px;margin-top:8px}
+</style></head><body>
+<!-- 手機版：移除「開駕駛艙」連結（駕駛艙未上 Pages）-->
+<div id="gate" class="gate">
+  <h1 style="justify-content:center">🔒 任務板</h1>
+  <div class="meta" style="text-align:center">輸入密碼解開（資料已加密存放，無密碼讀不到）</div>
+  <input id="pw" type="password" inputmode="text" autocomplete="current-password" placeholder="密碼" autofocus>
+  <button id="go">解鎖</button>
+  <div class="err" id="err"></div>
+</div>
+<div class="wrap" id="app" style="display:none">
+  <h1>🗂️ 倉吉副總 · 每日任務板</h1>
+  <div class="meta" id="updated"></div>
+  <div class="bar">
+    
+    <button onclick="location.reload()">🔄 重新整理</button>
+    <button onclick="clearDone()">🧹 清掉已勾選</button>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--pat)"></span>🟦待我拍</span>
+    <span><span class="dot" style="background:var(--self)"></span>🟩我親自做</span>
+    <span><span class="dot" style="background:var(--deleg)"></span>🟨交辦追蹤</span>
+    <span><span class="dot" style="background:var(--memo)"></span>⬜資訊備忘</span><span>·</span>
+    <span><span class="dot" style="background:var(--red)"></span>未開始</span>
+    <span><span class="dot" style="background:var(--yellow)"></span>進行中</span>
+    <span><span class="dot" style="background:var(--green)"></span>待結案</span>
+  </div>
+  <div class="pending" id="pendingBox" style="display:none"><h3>📥 待處理（我還沒排完）</h3><div id="pending"></div></div>
+  <div id="board"></div>
+
+<div class="note">📲 加到主畫面：iPhone 按分享▸「加入主畫面」；Android Chrome 選單▸「加到主畫面」。解鎖後可離線看。勾選狀態存本機不外流。</div>
+</div>
+<script>
+const BLOB={"salt":"CB6NcX8WsJTCOI6Y6yiz1w==","iv":"0oubylH5GEROhED9","ct":"D6loXKTQ1gjmgbcwE7pMRLrzn3CoO2tGiYoEWCP8hImdpgw6huH2FPHYZwYtdxEUcyRkYYiTFG26k5jjRJ26C12b/MValU23uX53iBmrIRiu3AFEnUXa2VVvHHc57kUOL+M65CWu+EcZ9gRbdFYsbHmuAiuedzGOduva80hCXsbfdRH3RnjWiZitOLEvF6UdzWB75YfYyOhp3079umKiRYC/ToKGFPg2zaKfKkIA9qsAYGStIC9X9LfKOQvsPSa4Vjyp/Itk7YZgpOQVfJ+s0N9OjJwywxY9ct+VyF6E/WmpFZtWCZiYbf30zevhiZcgcENS5ybhmgS+WZLhbhvoBoGs74RFxpVf4fTY/Oqo7yZkRpZN2GRsxPGeIM16yVR3sSUNFByaZOrNI6c+HIz8QA3FK6dymC664rr5ETAjiEyQ9FsITWx3xNE0MLsgm/RTNU5VZ0q9DkPfe+bq4h2BuwFbGZPo1RCVpLgSpJ+kTVR5kA==","iter":210000};
+const dec=new TextDecoder(); const enc2=new TextEncoder();
+async function unlock(pw){
+  const salt=Uint8Array.from(atob(BLOB.salt),c=>c.charCodeAt(0));
+  const iv=Uint8Array.from(atob(BLOB.iv),c=>c.charCodeAt(0));
+  const ct=Uint8Array.from(atob(BLOB.ct),c=>c.charCodeAt(0));
+  const base=await crypto.subtle.importKey('raw',enc2.encode(pw),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:BLOB.iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
+  return JSON.parse(dec.decode(pt));
+}
+
+const NATURE={pat:{t:"🟦 待我拍",c:"pat"},self:{t:"🟩 我親自做",c:"self"},deleg:{t:"🟨 交辦追蹤",c:"deleg"},memo:{t:"⬜ 資訊備忘",c:"memo"}};
+const SECTIONS=[["pat","🟦 待我拍／定案"],["self","🟩 我親自做／請示"],["deleg","🟨 交辦並追蹤"],["memo","⬜ 資訊／備忘"]];
+function esc(s){return String(s==null?"":s).replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]))}
+function dueChip(due){ if(!due)return"";
+  const T=new Date(new Date().toISOString().slice(0,10)); const d=new Date(due);
+  const diff=Math.round((d-T)/86400000); let cls="far",label=due.slice(5).replace("-","/");
+  if(diff<=0){cls="";label="⏰ "+label+(diff<0?" 逾期":" 今天");}
+  else if(diff<=3){cls="soon";label="⏰ "+label+" (剩"+diff+"天)";}
+  return '<span class="chip due '+cls+'">'+label+'</span>'; }
+function renderBoard(data){
+  document.getElementById("updated").textContent="最後更新 "+data.updated+" · 在桌面 Claude Code 對話講「記一下…」我即時排程";
+  if((data.pending||[]).length){ document.getElementById("pendingBox").style.display="block";
+    document.getElementById("pending").innerHTML=data.pending.map(p=>'<div class="task">'+esc(p.raw)+'</div>').join(""); }
+  const saved=JSON.parse(localStorage.getItem("taskboard_done")||"{}"); let html="";
+  for(const [key,label] of SECTIONS){ const items=(data.tasks||[]).filter(t=>t.nature===key);
+    html+='<details '+(items.length?"open":"")+'><summary><span>'+label+'</span><span class="count">'+items.length+' 件</span></summary><div class="sec-body">';
+    if(!items.length) html+='<div class="empty">（無）</div>';
+    items.forEach(t=>{ const done=saved[t.id]||t.status==="done"; const n=NATURE[t.nature]||NATURE.memo;
+      html+='<div class="task s-'+(done?"done":t.status)+' '+(done?"done":"")+'"><div class="top">'+
+        '<input type="checkbox" class="chk" data-id="'+t.id+'" '+(done?"checked":"")+'>'+
+        '<div class="title">'+esc(t.title)+'</div></div><div class="chips">'+
+        '<span class="chip '+n.c+'">'+n.t+'</span>'+(t.owner?'<span class="chip">👤 '+esc(t.owner)+'</span>':"")+dueChip(t.due)+
+        '</div>'+(t.next?'<div class="next"><b>下一步：</b>'+esc(t.next)+'</div>':"")+
+        '<div class="id">'+esc(t.id)+(t.sample?" · 範例":"")+'</div></div>'; });
+    html+='</div></details>'; }
+  document.getElementById("board").innerHTML=html;
+  document.querySelectorAll(".chk").forEach(c=>c.addEventListener("change",e=>{
+    const s=JSON.parse(localStorage.getItem("taskboard_done")||"{}");
+    if(e.target.checked)s[e.target.dataset.id]=1; else delete s[e.target.dataset.id];
+    localStorage.setItem("taskboard_done",JSON.stringify(s)); renderBoard(data);}));
+}
+function clearDone(){ if(confirm("清掉本機已勾選標記？")){localStorage.removeItem("taskboard_done");renderBoard(window.__DATA);} }
+
+async function go(){ const pw=document.getElementById('pw').value; const err=document.getElementById('err'); err.textContent='';
+  try{ const data=await unlock(pw); window.__DATA=data; sessionStorage.setItem('tb_pw',pw);
+    document.getElementById('gate').style.display='none'; document.getElementById('app').style.display='block'; renderBoard(data);
+  }catch(e){ err.textContent='密碼錯誤或資料毀損'; } }
+document.getElementById('go').addEventListener('click',go);
+document.getElementById('pw').addEventListener('keydown',e=>{if(e.key==='Enter')go();});
+const cached=sessionStorage.getItem('tb_pw'); if(cached){document.getElementById('pw').value=cached;go();}
+</script></body></html>
