@@ -81,7 +81,7 @@
 <div class="note">📲 加到主畫面：iPhone 按分享▸「加入主畫面」；Android Chrome 選單▸「加到主畫面」。解鎖後可離線看。勾選狀態存本機不外流。</div>
 </div>
 <script>
-const BLOB={"salt":"CB6NcX8WsJTCOI6Y6yiz1w==","iv":"0oubylH5GEROhED9","ct":"D6loXKTQ1gjmgbcwE7pMRLrzn3CoO2tGiYoEWCP8hImdpgw6huH2FPHYZwYtdxEUcyRkYYiTFG26k5jjRJ26C12b/MValU23uX53iBmrIRiu3AFEnUXa2VVvHHc57kUOL+M65CWu+EcZ9gRbdFYsbHmuAiuedzGOduva80hCXsbfdRH3RnjWiZitOLEvF6UdzWB75YfYyOhp3079umKiRYC/ToKGFPg2zaKfKkIA9qsAYGStIC9X9LfKOQvsPSa4Vjyp/Itk7YZgpOQVfJ+s0N9OjJwywxY9ct+VyF6E/WmpFZtWCZiYbf30zevhiZcgcENS5ybhmgS+WZLhbhvoBoGs74RFxpVf4fTY/Oqo7yZkRpZN2GRsxPGeIM16yVR3sSUNFByaZOrNI6c+HIz8QA3FK6dymC664rr5ETAjiEyQ9FsITWx3xNE0MLsgm/RTNU5VZ0q9DkPfe+bq4h2BuwFbGZPo1RCVpLgSpJ+kTVR5kA==","iter":210000};
+const BLOB={"salt":"hBUzl4jQYlkZBhyvokXZzA==","iv":"PwZbIexGNesr6ocq","ct":"MQ6cpS5orAK4CXvmzMTB3VYtLb3WwsU8v0akS6/uRhdljl8cAR/Sb4JW+U+LNsABZ1AACq5Wyn9cDAd/kuTt3vch9swaeuWyEtfjoWDvh8CE2Q77ab51hdnce7nBLOnGFk1XoWQ6cPhwu1whLtk9usv0EUkIsj5xUwrqS8QXji9hcxuczhGT4/Clrguysiug4DbXtczFM9WFDXpFXcsmvxKWRCkC15omOOjYVIUeA16xcaejjV4h3ZLyEBwgvBqXPaGKWV3vRvjbkYCbMNjfugvwIgQLhJaB0KzHM7ZHutTMlCFYWmdw2T9BcFUk8p/nt/wA5GplLiOWrJjwp6bVbPPfVJLU5BRenxgtyC4yuER9gcdR9SJr3pj0PPFkh1kWWexrdPYzIO3vgMCdzcR2lIgcRugfv3Lz+j8uLrmpptgzhExVjPkcJsqH04JU5cmSCkHgaBPbCckmzQjtJCWpeI29zTr6ZLMhYMyDuIPzbwJWyA==","iter":210000};
 const dec=new TextDecoder(); const enc2=new TextEncoder();
 async function unlock(pw){
   const salt=Uint8Array.from(atob(BLOB.salt),c=>c.charCodeAt(0));
