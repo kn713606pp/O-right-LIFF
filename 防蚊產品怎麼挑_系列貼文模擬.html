@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>系列貼文模擬｜防蚊產品怎麼挑（借勢成分話題）</title>
+<style>
+  :root{
+    --bg:#0f1419;--card:#1a2129;--line:#2a333d;--txt:#e6edf3;--mut:#8b98a5;
+    --grn:#2ea043;--amb:#d99a2b;--red:#d9534f;--blu:#388bfd;--accent:#3fb950;
+    --leaf:#1f6f43;--leaf2:#2e9e63;--cream:#f4f1e8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;line-height:1.65;padding:18px;max-width:1100px;margin:0 auto;font-size:16px}
+  h1{font-size:1.5rem;margin-bottom:4px}
+  .sub{color:var(--mut);font-size:.85rem;margin-bottom:6px}
+  .tagline{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 18px}
+  .tag{display:inline-block;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 9px;font-size:.78rem;color:var(--mut)}
+  .todo{background:rgba(217,154,43,.12);border:1px solid var(--amb);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:.9rem;color:#f0d9a8}
+  .todo b{color:var(--amb)}
+  h2{font-size:1.15rem;margin:26px 0 12px;display:flex;align-items:center;gap:8px;border-left:4px solid var(--leaf2);padding-left:10px}
+  .grid{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+
+  /* ---- phone frame ---- */
+  .phone{width:320px;background:#000;border-radius:30px;padding:10px;box-shadow:0 8px 30px rgba(0,0,0,.5);flex-shrink:0}
+  .screen{background:#fff;color:#111;border-radius:22px;overflow:hidden}
+  .ig-bar{display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:.85rem;font-weight:600}
+  .ig-ava{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--leaf),var(--leaf2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem;font-weight:700}
+  .ig-bar .more{margin-left:auto;color:#666;font-size:1.1rem}
+  .ig-handle{font-size:.7rem;color:#888;font-weight:400}
+
+  /* image / slide canvas */
+  .canvas{aspect-ratio:1/1;background:linear-gradient(150deg,#143d28 0%,#1f6f43 55%,#2e9e63 100%);position:relative;color:#fff;display:flex;flex-direction:column;justify-content:center;padding:22px;overflow:hidden}
+  .canvas::after{content:"🌿";position:absolute;right:-10px;bottom:-14px;font-size:120px;opacity:.12}
+  .canvas .kicker{font-size:.72rem;letter-spacing:2px;opacity:.85;margin-bottom:8px}
+  .canvas .big{font-size:1.5rem;font-weight:800;line-height:1.35}
+  .canvas .mid{font-size:1.05rem;font-weight:700;line-height:1.5}
+  .canvas .small{font-size:.85rem;opacity:.92;margin-top:8px;line-height:1.55}
+  .canvas .pill{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:3px 12px;font-size:.72rem;margin-top:12px}
+  .num{display:inline-flex;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.22);align-items:center;justify-content:center;font-weight:800;font-size:.9rem;margin-right:6px}
+  .ph{background:rgba(255,235,140,.25);border:1px dashed #ffe98c;border-radius:5px;padding:0 5px;color:#fff3c4;font-weight:700}
+
+  .ig-actions{display:flex;gap:14px;padding:8px 12px;font-size:1.15rem}
+  .ig-actions .save{margin-left:auto}
+  .ig-cap{padding:2px 12px 12px;font-size:.82rem;color:#222;white-space:pre-line}
+  .ig-cap .hh{color:#1e4fa0}
+  .ig-cap b{font-weight:700}
+
+  .dots{display:flex;justify-content:center;gap:5px;padding:6px 0 2px}
+  .dots i{width:6px;height:6px;border-radius:50%;background:#ccc;display:inline-block}
+  .dots i.on{background:#1f6f43}
+
+  /* stories */
+  .story{width:200px;flex-shrink:0}
+  .story .bar{display:flex;gap:3px;padding:6px 8px 0}
+  .story .bar i{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.35)}
+  .story .bar i.on{background:#fff}
+  .story .scr{aspect-ratio:9/16;border-radius:18px;background:linear-gradient(160deg,#143d28,#2e9e63);color:#fff;padding:14px;display:flex;flex-direction:column;position:relative;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+  .story .top{display:flex;align-items:center;gap:6px;font-size:.7rem;font-weight:600}
+  .story .mid{flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center}
+  .story .mid .t{font-size:1.05rem;font-weight:800;line-height:1.4}
+  .story .mid .d{font-size:.82rem;margin-top:8px;opacity:.95;line-height:1.5}
+  .vote{background:#fff;color:#111;border-radius:12px;overflow:hidden;margin-top:10px;font-size:.8rem;font-weight:700}
+  .vote .q{padding:8px 10px;border-bottom:1px solid #eee}
+  .vote .opts{display:flex}
+  .vote .opts span{flex:1;text-align:center;padding:9px 0}
+  .vote .opts span+span{border-left:1px solid #eee}
+  .linksticker{margin-top:auto;background:rgba(255,255,255,.92);color:#111;border-radius:10px;padding:8px 10px;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:6px;justify-content:center}
+  .caption{font-size:.78rem;color:var(--mut);text-align:center;margin-top:8px}
+
+  /* reels table */
+  table{width:100%;border-collapse:collapse;font-size:.9rem;background:var(--card);border-radius:12px;overflow:hidden}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mut);font-weight:600;font-size:.8rem;background:rgba(255,255,255,.03)}
+  td .ts{color:var(--accent);font-weight:700;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  .endcard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px;font-size:.9rem}
+
+  /* safety */
+  .safe{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+  .safe ul{list-style:none}
+  .safe li{padding:7px 0;border-bottom:1px solid var(--line);font-size:.92rem}
+  .safe li:last-child{border-bottom:none}
+  .safe li.ok::before{content:"✓ ";color:var(--grn);font-weight:700}
+  .safe li.add::before{content:"➕ ";color:var(--amb)}
+  .copybtn{background:none;border:1px solid var(--line);color:var(--mut);border-radius:6px;padding:4px 10px;font-size:.76rem;cursor:pointer;margin-left:auto}
+  .blockhead{display:flex;align-items:center;gap:8px;margin:26px 0 12px}
+  .blockhead h2{margin:0;border:0;padding:0}
+  .foot{color:var(--mut);font-size:.78rem;text-align:center;margin-top:30px;padding-bottom:30px}
+  @media(max-width:680px){.phone{width:100%;max-width:340px;margin:0 auto}}
+</style>
+</head>
+<body>
+
+<h1>🦟🌿 系列貼文模擬｜防蚊產品怎麼挑</h1>
+<div class="sub">借勢「成分話題」· 消費者教育 · 不指名競品 ·（模擬預覽稿，待填欄位以黃底標示）</div>
+<div class="tagline">
+  <span class="tag">角度：消費者教育</span>
+  <span class="tag">調性：幫你看懂、不打對手</span>
+  <span class="tag">借勢：接成分話題、不指名競品</span>
+  <span class="tag">產品：歐萊德雨林精油防蚊乳液</span>
+</div>
+
+<div class="todo">
+  ⚠️ <b>待填／待核對：</b>
+  ① USDA 生物基含量實際 %　② 完整成分／登記資訊連結　③（選用）本品檢測報告<br>
+  防蚊用語仍請對齊本品核准標示（仁傑）；USDA 證號／年度交永續佐證鏈核對。
+</div>
+
+<!-- ================= 一、主貼文 ================= -->
+<div class="blockhead"><h2>一、主貼文（Feed 主圖文案）</h2>
+  <button class="copybtn" onclick="copyCap('cap-main')">複製文案</button></div>
+<div class="grid">
+  <div class="phone">
+    <div class="screen">
+      <div class="ig-bar">
+        <span class="ig-ava">O'r</span>
+        <div>oright_official<div class="ig-handle">贊助 · Feed</div></div>
+        <span class="more">⋯</span>
+      </div>
+      <div class="canvas">
+        <div class="kicker">CONSUMER GUIDE</div>
+        <div class="big">防蚊產品<br>怎麼挑?<br>記住這三件事</div>
+        <div class="small">① 看用途　② 查字號　③ 看來源</div>
+        <span class="pill">🌿 植物來源精油 · USDA 生物基認證</span>
+      </div>
+      <div class="ig-actions"><span>♡</span><span>💬</span><span>➤</span><span class="save">🔖</span></div>
+      <div class="ig-cap" id="cap-main"><b>oright_official</b> 最近防蚊產品的成分，成了很多家庭關心的話題。
+與其擔心，不如學會怎麼挑──存起來，夏天用得到 👇
+
+挑防蚊產品，記住三件事：
+① 看用途　標示「人體用」還是「環境用」，別用錯
+② 查字號　認明合法登記（精油類看經濟部商品標示；化學防蚊液可上環境部查詢系統查許可字號）
+③ 看來源　成分從哪裡來，標示有沒有說清楚
+
+歐萊德雨林精油防蚊乳液
+植物來源精油配方｜USDA 生物基產品認證（生物基含量 <span class="ph">[XX]%</span>）
+資訊透明，選擇權在你。
+
+<span class="hh">#Oright #防蚊乳液 #USDABiobased #防蚊怎麼挑 #成分透明 #Orightforallrights</span></div>
+    </div>
+  </div>
+  <div style="flex:1;min-width:240px;color:var(--mut);font-size:.9rem">
+    <p style="margin-bottom:10px">📌 <b style="color:var(--txt)">版面重點</b></p>
+    <p>· 主圖只放「三件事」標題，降低閱讀門檻、提高存圖率。</p>
+    <p style="margin-top:8px">· 產品與 USDA 認證放在文案後段，先給價值、再帶產品。</p>
+    <p style="margin-top:8px">· 全程「怎麼挑」框架，不出現任何競品字眼或安全宣稱。</p>
+    <p style="margin-top:8px">· <span class="ph">[XX]%</span> 需以 USDA 證書實際數字替換後才可發布。</p>
+  </div>
+</div>
+
+<!-- ================= 二、輪播 ================= -->
+<h2>二、輪播分則（Carousel · 4 張）</h2>
+<div class="grid">
+  <!-- slide 1 -->
+  <div class="phone" style="width:260px">
+    <div class="screen">
+      <div class="canvas">
+        <div class="kicker">SLIDE 1 · 封面</div>
+        <div class="big">防蚊產品<br>怎麼挑?</div>
+        <div class="small">記住這三件事 🦟🌿</div>
+      </div>
+      <div class="dots"><i class="on"></i><i></i><i></i><i></i></div>
+    </div>
+  </div>
+  <!-- slide 2 -->
+  <div class="phone" style="width:260px">
+    <div class="screen">
+      <div class="canvas">
+        <div class="kicker">SLIDE 2</div>
+        <div class="mid"><span class="num">1</span>看用途</div>
+        <div class="small">「人體用」≠「環境用」。環境用的不可直接噴在皮膚上，買前先看標示的使用方法，別用錯。</div>
+      </div>
+      <div class="dots"><i></i><i class="on"></i><i></i><i></i></div>
+    </div>
+  </div>
+  <!-- slide 3 -->
+  <div class="phone" style="width:260px">
+    <div class="screen">
+      <div class="canvas">
+        <div class="kicker">SLIDE 3</div>
+        <div class="mid"><span class="num">2</span>查字號</div>
+        <div class="small">合法產品都查得到。精油類認明經濟部商品標示；化學防蚊液可上環境部查詢系統查許可字號。</div>
+      </div>
+      <div class="dots"><i></i><i></i><i class="on"></i><i></i></div>
+    </div>
+  </div>
+  <!-- slide 4 -->
+  <div class="phone" style="width:260px">
+    <div class="screen">
+      <div class="canvas">
+        <div class="kicker">SLIDE 4 · 收尾</div>
+        <div class="mid"><span class="num">3</span>看來源</div>
+        <div class="small">成分從哪裡來，攤開看得明白才好挑。<br><br>歐萊德雨林精油防蚊乳液：植物來源精油、USDA 生物基認證 <span class="ph">[XX]%</span>。</div>
+        <span class="pill">完整資訊 👉 <span class="ph">[連結]</span></span>
+      </div>
+      <div class="dots"><i></i><i></i><i></i><i class="on"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 三、限動 ================= -->
+<h2>三、限動（Stories · 4 frame）</h2>
+<div class="grid">
+  <!-- frame 1 -->
+  <div class="story">
+    <div class="phone" style="width:100%;padding:6px">
+      <div style="position:relative">
+        <div class="bar" style="position:absolute;top:0;left:0;right:0;z-index:2"><i class="on"></i><i></i><i></i><i></i></div>
+        <div class="scr">
+          <div class="top"><span class="ig-ava" style="width:22px;height:22px;font-size:.6rem">O'r</span> oright_official</div>
+          <div class="mid">
+            <div class="t">你買防蚊產品時，<br>會看成分嗎?</div>
+            <div class="vote">
+              <div class="q">投票一下 👇</div>
+              <div class="opts"><span>會 🙋</span><span>幾乎不會 🙈</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">Frame 1｜投票貼紙</div>
+  </div>
+  <!-- frame 2 -->
+  <div class="story">
+    <div class="phone" style="width:100%;padding:6px">
+      <div style="position:relative">
+        <div class="bar" style="position:absolute;top:0;left:0;right:0;z-index:2"><i></i><i class="on"></i><i></i><i></i></div>
+        <div class="scr">
+          <div class="top"><span class="ig-ava" style="width:22px;height:22px;font-size:.6rem">O'r</span> oright_official</div>
+          <div class="mid">
+            <div class="t">💡 小提醒</div>
+            <div class="d">防蚊產品分「人體用」和「環境用」──環境用的不可直接噴皮膚喔。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">Frame 2｜知識卡</div>
+  </div>
+  <!-- frame 3 -->
+  <div class="story">
+    <div class="phone" style="width:100%;padding:6px">
+      <div style="position:relative">
+        <div class="bar" style="position:absolute;top:0;left:0;right:0;z-index:2"><i></i><i></i><i class="on"></i><i></i></div>
+        <div class="scr">
+          <div class="top"><span class="ig-ava" style="width:22px;height:22px;font-size:.6rem">O'r</span> oright_official</div>
+          <div class="mid">
+            <div class="t">怎麼確認<br>買到合法的?</div>
+            <div class="d">→ 看登記字號<br>（下一頁帶你看怎麼查）</div>
+          </div>
+          <div class="linksticker">👆 往上滑看下一張</div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">Frame 3｜知識卡</div>
+  </div>
+  <!-- frame 4 -->
+  <div class="story">
+    <div class="phone" style="width:100%;padding:6px">
+      <div style="position:relative">
+        <div class="bar" style="position:absolute;top:0;left:0;right:0;z-index:2"><i></i><i></i><i></i><i class="on"></i></div>
+        <div class="scr">
+          <div class="top"><span class="ig-ava" style="width:22px;height:22px;font-size:.6rem">O'r</span> oright_official</div>
+          <div class="mid">
+            <div class="t">歐萊德<br>雨林精油防蚊乳液</div>
+            <div class="d">植物來源精油｜USDA 生物基 <span class="ph">[XX]%</span></div>
+          </div>
+          <div class="linksticker">🔗 點連結看完整成分 👉 <span class="ph">[連結]</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">Frame 4｜產品 + 連結貼紙</div>
+  </div>
+</div>
+
+<!-- ================= 四、短影音 ================= -->
+<h2>四、短影音腳本（Reels／TikTok · 約 20–25 秒）</h2>
+<table>
+  <thead><tr><th style="width:70px">時間</th><th style="width:34%">畫面</th><th>口白／字幕</th></tr></thead>
+  <tbody>
+    <tr><td><span class="ts">0–3s</span></td><td>手拿兩瓶防蚊產品猶豫</td><td>「防蚊產品這麼多，到底怎麼挑?」</td></tr>
+    <tr><td><span class="ts">3–9s</span></td><td>特寫標示「人體用／環境用」</td><td>字幕 ① <b>看用途</b>——先看是人體用還是環境用，別噴錯</td></tr>
+    <tr><td><span class="ts">9–15s</span></td><td>手機查詢登記字號畫面</td><td>字幕 ② <b>查字號</b>——查得到字號，才是合法產品</td></tr>
+    <tr><td><span class="ts">15–20s</span></td><td>翻看產品成分表</td><td>字幕 ③ <b>看來源</b>——成分從哪來，攤開看得明白</td></tr>
+    <tr><td><span class="ts">20–25s</span></td><td>產品 + O'right logo</td><td>「植物來源精油、USDA 生物基認證。資訊透明，選擇你來。」</td></tr>
+  </tbody>
+</table>
+<div class="endcard">🎬 <b>結尾字卡：</b>完整成分看簡介連結 👆</div>
+
+<!-- ================= 安全說明 ================= -->
+<div class="blockhead"><h2>為什麼這樣借勢是安全的</h2></div>
+<div class="safe">
+  <ul>
+    <li class="ok">全程談「成分話題／怎麼挑」，<b>沒指名、沒暗示競品含農藥</b>（避開公平交易法貶損／不實風險）。</li>
+    <li class="ok"><b>沒有</b>「我們最安全／無農藥」這類自我安全宣稱。</li>
+    <li class="ok">防蚊維持在<b>產品類別層級</b>，不誇大效能。</li>
+    <li class="ok">USDA 準確表述為「<b>生物基含量 %</b>」，不與安全／無農藥並置（避免引人錯誤）。</li>
+  </ul>
+</div>
+<div class="blockhead"><h2>加分（選用，需佐證）</h2></div>
+<div class="safe">
+  <ul>
+    <li class="add">若珮瑄那邊有本品「未檢出農藥／特定殘留」的檢測報告，可在主貼文或 Slide 4 補一句<b>事實陳述</b>（例：「本品經 ⃞⃞ 檢測，未檢出 ⃞⃞」）。</li>
+    <li class="add">條件：<b>有報告佐證</b>、且<b>只述自己、不對比競品</b>。</li>
+    <li class="add">有憑有據的透明，比恐嚇式行銷更有說服力，也最貼 O'right 調性。</li>
+  </ul>
+</div>
+
+<div class="foot">© O'right 行銷企劃模擬稿 · 防蚊產品怎麼挑系列 · 發布前請完成黃底待填欄位與法務（仁傑）／永續佐證鏈核對</div>
+
+<script>
+function copyCap(id){
+  const el=document.getElementById(id);
+  const txt=el.innerText.replace(/^oright_official\s*/,'');
+  navigator.clipboard.writeText(txt).then(()=>{alert('主貼文文案已複製');}).catch(()=>{
+    const r=document.createRange();r.selectNode(el);getSelection().removeAllRanges();getSelection().addRange(r);
+    alert('已選取，請按 Ctrl/Cmd+C 複製');
+  });
+}
+</script>
+</body>
+</html>
