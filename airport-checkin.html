@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>機場自動報到選位 — 歐萊德小管家</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="config.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "Noto Sans TC", sans-serif;
+      background: #F0F4F8;
+      color: #333;
+      min-height: 100vh;
+      padding: 20px 16px 40px;
+    }
+
+    .header {
+      background: #1E3A5F;
+      color: white;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .header .label { font-size: 12px; opacity: 0.7; margin-bottom: 4px; }
+    .header .title { font-size: 18px; font-weight: bold; line-height: 1.4; }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #1E3A5F;
+      margin-bottom: 10px;
+    }
+
+    /* ── 航班資訊（登機證樣式） ── */
+    .boarding {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .boarding .airport { text-align: center; flex: 1; }
+    .boarding .code { font-size: 26px; font-weight: 800; color: #1E3A5F; letter-spacing: 1px; }
+    .boarding .city { font-size: 12px; color: #999; margin-top: 2px; }
+    .boarding .arrow { flex: 0 0 auto; padding: 0 8px; color: #1E3A5F; font-size: 20px; }
+    .boarding .arrow .flightno { font-size: 11px; color: #999; display: block; text-align: center; margin-top: 2px; }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #F0F0F0;
+      font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #999; flex-shrink: 0; margin-right: 12px; }
+    .info-value { color: #333; text-align: right; font-weight: 600; }
+
+    /* ── 座艙圖例 ── */
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 14px;
+    }
+    .legend span { display: flex; align-items: center; gap: 5px; }
+    .swatch { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
+    .sw-avail    { background: #fff; border: 1.5px solid #BBB; }
+    .sw-selected { background: #1E3A5F; }
+    .sw-occupied { background: #D5DAE0; }
+    .sw-premium  { background: #fff; border: 1.5px solid #E6A800; }
+
+    /* ── 座位圖 ── */
+    .cabin {
+      background: #F7F9FB;
+      border: 1px solid #E2E8EF;
+      border-radius: 12px;
+      padding: 14px 10px;
+    }
+    .deck-label {
+      text-align: center;
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 8px;
+    }
+    .col-head {
+      display: grid;
+      grid-template-columns: 26px repeat(3, 1fr) 22px repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .col-head div {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #AAB;
+    }
+    .seat-row {
+      display: grid;
+      grid-template-columns: 26px repeat(3, 1fr) 22px repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+    .row-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: #AAB;
+      text-align: center;
+    }
+    .aisle { }
+    .seat {
+      aspect-ratio: 1 / 1;
+      border-radius: 6px;
+      border: 1.5px solid #BBB;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #888;
+      cursor: pointer;
+      transition: transform 0.08s, background 0.15s, color 0.15s;
+      user-select: none;
+    }
+    .seat:active { transform: scale(0.92); }
+    .seat.premium { border-color: #E6A800; }
+    .seat.occupied {
+      background: #D5DAE0;
+      border-color: #C5CCD5;
+      color: #fff;
+      cursor: not-allowed;
+    }
+    .seat.selected {
+      background: #1E3A5F;
+      border-color: #1E3A5F;
+      color: #fff;
+    }
+    .exit-label {
+      text-align: center;
+      font-size: 10px;
+      color: #C62828;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin: 8px 0;
+    }
+
+    /* ── 已選座位摘要 ── */
+    .selected-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: #EEF3F8;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .selected-bar .seat-pill {
+      font-weight: 800;
+      color: #1E3A5F;
+      font-size: 18px;
+    }
+    .selected-bar .seat-extra { font-size: 12px; color: #888; }
+
+    /* ── 偏好設定 ── */
+    .pref-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #444;
+      cursor: pointer;
+      padding: 6px 0;
+    }
+    .pref-toggle input { width: 18px; height: 18px; accent-color: #1E3A5F; cursor: pointer; }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .chip {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid #DDD;
+      background: #fff;
+      font-size: 13px;
+      color: #555;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip.active { background: #1E3A5F; color: #fff; border-color: #1E3A5F; }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: #1E3A5F;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+    .btn-submit:active { background: #152B47; }
+    .btn-submit:disabled { background: #AAA; cursor: not-allowed; }
+
+    .btn-auto {
+      width: 100%;
+      padding: 12px;
+      background: #fff;
+      color: #1E3A5F;
+      border: 1.5px solid #1E3A5F;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .btn-auto:active { background: #EEF3F8; }
+
+    #loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 4px solid #dce6f0; border-top-color: #1E3A5F;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #success {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    #success .icon { font-size: 48px; margin-bottom: 12px; }
+    #success .msg  { font-size: 18px; color: #333; font-weight: bold; }
+    #success .sub  { font-size: 14px; color: #999; margin-top: 8px; }
+    .pass {
+      background: #1E3A5F;
+      color: #fff;
+      border-radius: 12px;
+      padding: 18px;
+      margin: 18px auto 0;
+      max-width: 320px;
+      text-align: left;
+    }
+    .pass .pass-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+    .pass .pass-label { opacity: 0.65; }
+    .pass .pass-big { font-size: 22px; font-weight: 800; }
+    .pass-divider { border-top: 1px dashed rgba(255,255,255,0.3); margin: 10px 0; }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div>讀取航班與座艙資料…</div>
+</div>
+
+<div id="main" style="display:none">
+  <div class="header">
+    <div class="label">歐萊德小管家 — 機場自動報到</div>
+    <div class="title">線上報到與選位</div>
+  </div>
+
+  <!-- 航班登機證資訊 -->
+  <div class="card">
+    <div class="boarding">
+      <div class="airport">
+        <div class="code" id="depCode">TPE</div>
+        <div class="city" id="depCity">台北桃園</div>
+      </div>
+      <div class="arrow">
+        ✈
+        <span class="flightno" id="flightNo">BR—</span>
+      </div>
+      <div class="airport">
+        <div class="code" id="arrCode">NRT</div>
+        <div class="city" id="arrCity">東京成田</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="info-row">
+      <span class="info-label">旅客姓名</span>
+      <span class="info-value" id="paxName">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">航班日期</span>
+      <span class="info-value" id="flightDate">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">登機時間</span>
+      <span class="info-value" id="boardTime">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">登機門</span>
+      <span class="info-value" id="gate">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">艙等</span>
+      <span class="info-value" id="cabinClass">經濟艙</span>
+    </div>
+  </div>
+
+  <!-- 自動選位偏好 -->
+  <div class="card">
+    <div class="card-title">⚙️ 自動選位偏好</div>
+    <div class="chips" id="prefChips">
+      <div class="chip active" data-pref="window">靠窗</div>
+      <div class="chip" data-pref="aisle">走道</div>
+      <div class="chip" data-pref="front">靠前排</div>
+      <div class="chip" data-pref="together">同行併座</div>
+    </div>
+    <button class="btn-auto" style="margin-top:14px;" onclick="autoSelect()">⚡ 依偏好自動選位</button>
+  </div>
+
+  <!-- 座位圖 -->
+  <div class="card">
+    <div class="card-title">🪑 選擇座位</div>
+    <div class="legend">
+      <span><i class="swatch sw-avail"></i>可選</span>
+      <span><i class="swatch sw-selected"></i>已選</span>
+      <span><i class="swatch sw-occupied"></i>已售</span>
+      <span><i class="swatch sw-premium"></i>優選座</span>
+    </div>
+    <div class="cabin">
+      <div class="deck-label">機頭方向 ↑</div>
+      <div class="col-head">
+        <div></div><div>A</div><div>B</div><div>C</div><div></div><div>D</div><div>E</div><div>F</div>
+      </div>
+      <div id="seatMap"></div>
+    </div>
+
+    <div class="selected-bar">
+      <div>
+        <div style="font-size:12px;color:#888;">目前選位</div>
+        <div><span class="seat-pill" id="selSeat">—</span> <span class="seat-extra" id="selExtra"></span></div>
+      </div>
+      <div id="selFee" style="font-weight:700;color:#1E3A5F;"></div>
+    </div>
+  </div>
+
+  <button class="btn-submit" id="btnSubmit" onclick="confirmCheckin()" disabled>確認報到並選位</button>
+</div>
+
+<div id="success">
+  <div class="icon">✅</div>
+  <div class="msg">報到完成！</div>
+  <div class="sub">電子登機證已產生，請於登機門出示。</div>
+
+  <div class="pass">
+    <div class="pass-row"><span class="pass-label">旅客</span><span id="psName">—</span></div>
+    <div class="pass-row">
+      <span><span class="pass-label">航班</span><br><span class="pass-big" id="psFlight">—</span></span>
+      <span style="text-align:right;"><span class="pass-label">座位</span><br><span class="pass-big" id="psSeat">—</span></span>
+    </div>
+    <div class="pass-divider"></div>
+    <div class="pass-row"><span class="pass-label">航線</span><span id="psRoute">—</span></div>
+    <div class="pass-row"><span class="pass-label">登機門 / 時間</span><span id="psGate">—</span></div>
+    <div class="pass-row"><span class="pass-label">登機序號</span><span id="psSeq">—</span></div>
+  </div>
+</div>
+
+<script>
+  var GAS_URL = window.GAS_URL;
+  var LIFF_ID = window.LIFF_ID;
+
+  // ── 前端模擬資料（可改為串接 GAS：?action=getBoardingPass） ──
+  var flight = {
+    flightNo:  "BR198",
+    date:      "2026-06-20（六）",
+    depCode:   "TPE", depCity: "台北桃園",
+    arrCode:   "NRT", arrCity: "東京成田",
+    boardTime: "08:45",
+    gate:      "A6",
+    cabinClass:"經濟艙",
+    paxName:   "旅客"
+  };
+
+  // 已售出座位（模擬）
+  var occupied = {
+    "1A":1,"1C":1,"2D":1,"2E":1,"2F":1,"3B":1,"4A":1,"4F":1,
+    "5C":1,"5D":1,"6E":1,"7A":1,"7B":1,"8F":1,"9D":1,"10C":1,
+    "11A":1,"11B":1,"12E":1,"12F":1
+  };
+  // 優選座（前排與緊急出口，加價）
+  var premiumRows = { 1:1, 2:1, 11:1, 12:1 };
+  var exitRows = { 11:1 };
+  var TOTAL_ROWS = 16;
+  var COLS = ["A","B","C","D","E","F"];
+
+  var selectedSeat = null;
+  var prefs = { window:true, aisle:false, front:false, together:false };
+
+  async function init() {
+    try {
+      if (window.liff && LIFF_ID) {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+        try {
+          var profile = await liff.getProfile();
+          if (profile && profile.displayName) flight.paxName = profile.displayName;
+        } catch (e) {}
+      }
+    } catch (e) {
+      // 非 LINE 環境或 LIFF 初始化失敗 → 仍以模擬資料展示
+    }
+
+    // 允許用網址參數覆寫航班（?flightNo=BR198&date=...）
+    var q = new URLSearchParams(location.search);
+    ["flightNo","date","gate","boardTime","paxName"].forEach(function(k) {
+      if (q.get(k)) flight[k] = q.get(k);
+    });
+
+    renderFlight();
+    buildSeatMap();
+    bindPrefs();
+
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("main").style.display    = "block";
+  }
+
+  function renderFlight() {
+    document.getElementById("flightNo").textContent   = flight.flightNo;
+    document.getElementById("depCode").textContent    = flight.depCode;
+    document.getElementById("depCity").textContent    = flight.depCity;
+    document.getElementById("arrCode").textContent    = flight.arrCode;
+    document.getElementById("arrCity").textContent    = flight.arrCity;
+    document.getElementById("paxName").textContent    = flight.paxName;
+    document.getElementById("flightDate").textContent = flight.date;
+    document.getElementById("boardTime").textContent  = flight.boardTime;
+    document.getElementById("gate").textContent       = flight.gate;
+    document.getElementById("cabinClass").textContent = flight.cabinClass;
+  }
+
+  function buildSeatMap() {
+    var map = document.getElementById("seatMap");
+    var html = "";
+    for (var r = 1; r <= TOTAL_ROWS; r++) {
+      if (exitRows[r]) {
+        html += '<div class="exit-label">— 緊急出口 EXIT —</div>';
+      }
+      html += '<div class="seat-row">';
+      html += '<div class="row-num">' + r + '</div>';
+      for (var c = 0; c < COLS.length; c++) {
+        if (c === 3) html += '<div class="aisle"></div>'; // 走道
+        var id = r + COLS[c];
+        var cls = "seat";
+        if (premiumRows[r]) cls += " premium";
+        if (occupied[id])   cls += " occupied";
+        html += '<div class="' + cls + '" data-seat="' + id + '" data-row="' + r + '"'
+              + (occupied[id] ? '' : ' onclick="pickSeat(\'' + id + '\')"') + '>'
+              + COLS[c] + '</div>';
+      }
+      html += '</div>';
+    }
+    map.innerHTML = html;
+  }
+
+  function bindPrefs() {
+    document.querySelectorAll("#prefChips .chip").forEach(function(chip) {
+      chip.addEventListener("click", function() {
+        var p = chip.getAttribute("data-pref");
+        prefs[p] = !prefs[p];
+        chip.classList.toggle("active", prefs[p]);
+      });
+    });
+  }
+
+  function pickSeat(id) {
+    if (occupied[id]) return;
+    // 清除前一個
+    if (selectedSeat) {
+      var prev = document.querySelector('[data-seat="' + selectedSeat + '"]');
+      if (prev) prev.classList.remove("selected");
+    }
+    selectedSeat = id;
+    var el = document.querySelector('[data-seat="' + id + '"]');
+    el.classList.add("selected");
+    updateSelectedBar();
+  }
+
+  function seatInfo(id) {
+    var row = parseInt(id, 10);
+    var col = id.replace(/[0-9]/g, "");
+    var isWindow = (col === "A" || col === "F");
+    var isAisle  = (col === "C" || col === "D");
+    var fee = premiumRows[row] ? 600 : (isWindow ? 200 : 0);
+    var tags = [];
+    if (isWindow) tags.push("靠窗");
+    if (isAisle)  tags.push("走道");
+    if (premiumRows[row]) tags.push("優選座");
+    if (exitRows[row]) tags.push("緊急出口");
+    return { fee: fee, tags: tags };
+  }
+
+  function updateSelectedBar() {
+    var sel = document.getElementById("selSeat");
+    var extra = document.getElementById("selExtra");
+    var feeEl = document.getElementById("selFee");
+    var btn = document.getElementById("btnSubmit");
+
+    if (!selectedSeat) {
+      sel.textContent = "—"; extra.textContent = ""; feeEl.textContent = "";
+      btn.disabled = true;
+      return;
+    }
+    var info = seatInfo(selectedSeat);
+    sel.textContent = selectedSeat;
+    extra.textContent = info.tags.length ? "（" + info.tags.join("・") + "）" : "";
+    feeEl.textContent = info.fee > 0 ? "加價 NT$" + info.fee : "免費";
+    btn.disabled = false;
+  }
+
+  // ── 依偏好自動選位 ──
+  function autoSelect() {
+    var candidates = [];
+    for (var r = 1; r <= TOTAL_ROWS; r++) {
+      for (var c = 0; c < COLS.length; c++) {
+        var id = r + COLS[c];
+        if (occupied[id]) continue;
+        var col = COLS[c];
+        var score = 0;
+        var isWindow = (col === "A" || col === "F");
+        var isAisle  = (col === "C" || col === "D");
+        if (prefs.window && isWindow) score += 5;
+        if (prefs.aisle  && isAisle)  score += 5;
+        if (prefs.front)              score += Math.max(0, (TOTAL_ROWS - r)); // 越前分數越高
+        else                          score += r * 0.1; // 預設略偏好後排安靜
+        if (premiumRows[r])           score -= 2; // 避免不必要加價
+        candidates.push({ id: id, score: score });
+      }
+    }
+    if (!candidates.length) { alert("此航班已無可選座位"); return; }
+    candidates.sort(function(a, b) { return b.score - a.score; });
+    var best = candidates[0].id;
+
+    // 視覺回饋：滾動到該座位
+    pickSeat(best);
+    var el = document.querySelector('[data-seat="' + best + '"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  // ── 確認報到 ──
+  async function confirmCheckin() {
+    if (!selectedSeat) return;
+    var btn = document.getElementById("btnSubmit");
+    btn.disabled = true;
+    btn.textContent = "報到處理中…";
+
+    try {
+      // 若要串接後端，於此 fetch GAS_URL?action=checkin&seat=...&flightNo=...
+      // 此版本以前端模擬，直接產生登機序號
+      await new Promise(function(res) { setTimeout(res, 900); });
+      showSuccess();
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = "確認報到並選位";
+      alert("報到失敗，請稍後再試：" + err.message);
+    }
+  }
+
+  function showSuccess() {
+    var seq = "0" + (Math.floor(Math.random() * 80) + 12); // 模擬登機序號
+    document.getElementById("psName").textContent   = flight.paxName;
+    document.getElementById("psFlight").textContent = flight.flightNo;
+    document.getElementById("psSeat").textContent   = selectedSeat;
+    document.getElementById("psRoute").textContent  = flight.depCode + " → " + flight.arrCode;
+    document.getElementById("psGate").textContent   = flight.gate + " / " + flight.boardTime;
+    document.getElementById("psSeq").textContent    = "SEQ " + seq;
+
+    document.getElementById("main").style.display    = "none";
+    document.getElementById("success").style.display = "block";
+    window.scrollTo(0, 0);
+
+    if (window.liff && liff.isInClient && liff.isInClient()) {
+      setTimeout(function() { try { liff.closeWindow(); } catch (e) {} }, 6000);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
